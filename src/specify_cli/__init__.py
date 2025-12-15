@@ -10,7 +10,7 @@
 # ]
 # ///
 """
-Specify CLI - Setup tool for Specify projects
+Specify EX CLI - Setup tool for Specify EX projects
 
 Usage:
     uvx specify-cli.py init <project-name>
@@ -55,6 +55,249 @@ from datetime import datetime, timezone
 
 ssl_context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 client = httpx.Client(verify=ssl_context)
+
+# =============================================================================
+# Language Support (ja, en)
+# =============================================================================
+
+SUPPORTED_LANGUAGES = ["ja", "en"]
+
+LANGUAGE_NAMES = {
+    "ja": "日本語 (Japanese)",
+    "en": "English",
+}
+
+# Global language setting (default to English for compatibility with spec-kit)
+_current_lang = "en"
+
+def get_lang() -> str:
+    """Get current language setting."""
+    return _current_lang
+
+def set_lang(lang: str) -> None:
+    """Set current language."""
+    global _current_lang
+    if lang in SUPPORTED_LANGUAGES:
+        _current_lang = lang
+
+# Internationalization dictionary
+I18N = {
+    "ja": {
+        "tagline": "Specify EX - 仕様駆動開発ツールキット",
+        "banner_subtitle": "拡張版 - 多言語対応",
+        "help_usage": "'specify-ex --help' で使用方法を表示",
+    },
+    "en": {
+        "tagline": "Specify EX - Spec-Driven Development Toolkit",
+        "banner_subtitle": "Extended version with multi-language support",
+        "help_usage": "Run 'specify-ex --help' for usage information",
+    },
+}
+
+def t(key: str) -> str:
+    """Get translated string for current language."""
+    return I18N.get(_current_lang, I18N["en"]).get(key, key)
+
+# =============================================================================
+# Agent Configuration
+# =============================================================================
+
+AGENT_CONFIG = {
+    "copilot": {
+        "name": "GitHub Copilot",
+        "folder": ".github/",
+        "install_url": None,  # IDE-based, no CLI check needed
+        "requires_cli": False,
+    },
+    "claude": {
+        "name": "Claude Code",
+        "folder": ".claude/",
+        "install_url": "https://docs.anthropic.com/en/docs/claude-code/setup",
+        "requires_cli": True,
+    },
+    "gemini": {
+        "name": "Gemini CLI",
+        "folder": ".gemini/",
+        "install_url": "https://github.com/google-gemini/gemini-cli",
+        "requires_cli": True,
+    },
+    "cursor-agent": {
+        "name": "Cursor",
+        "folder": ".cursor/",
+        "install_url": None,  # IDE-based
+        "requires_cli": False,
+    },
+    "qwen": {
+        "name": "Qwen Code",
+        "folder": ".qwen/",
+        "install_url": "https://github.com/QwenLM/qwen-code",
+        "requires_cli": True,
+    },
+    "opencode": {
+        "name": "opencode",
+        "folder": ".opencode/",
+        "install_url": "https://opencode.ai",
+        "requires_cli": True,
+    },
+    "codex": {
+        "name": "Codex CLI",
+        "folder": ".codex/",
+        "install_url": "https://github.com/openai/codex",
+        "requires_cli": True,
+    },
+    "windsurf": {
+        "name": "Windsurf",
+        "folder": ".windsurf/",
+        "install_url": None,  # IDE-based
+        "requires_cli": False,
+    },
+    "kilocode": {
+        "name": "Kilo Code",
+        "folder": ".kilocode/",
+        "install_url": None,  # IDE-based
+        "requires_cli": False,
+    },
+    "auggie": {
+        "name": "Auggie CLI",
+        "folder": ".augment/",
+        "install_url": "https://docs.augmentcode.com/cli/setup-auggie/install-auggie-cli",
+        "requires_cli": True,
+    },
+    "codebuddy": {
+        "name": "CodeBuddy",
+        "folder": ".codebuddy/",
+        "install_url": "https://www.codebuddy.ai/cli",
+        "requires_cli": True,
+    },
+    "qoder": {
+        "name": "Qoder CLI",
+        "folder": ".qoder/",
+        "install_url": "https://qoder.com/cli",
+        "requires_cli": True,
+    },
+    "roo": {
+        "name": "Roo Code",
+        "folder": ".roo/",
+        "install_url": None,  # IDE-based
+        "requires_cli": False,
+    },
+    "q": {
+        "name": "Amazon Q Developer CLI",
+        "folder": ".amazonq/",
+        "install_url": "https://aws.amazon.com/developer/learning/q-developer-cli/",
+        "requires_cli": True,
+    },
+    "amp": {
+        "name": "Amp",
+        "folder": ".agents/",
+        "install_url": "https://ampcode.com/manual#install",
+        "requires_cli": True,
+    },
+    "shai": {
+        "name": "SHAI",
+        "folder": ".shai/",
+        "install_url": "https://github.com/ovh/shai",
+        "requires_cli": True,
+    },
+    "bob": {
+        "name": "IBM Bob",
+        "folder": ".bob/",
+        "install_url": None,  # IDE-based
+        "requires_cli": False,
+    },
+}
+
+# =============================================================================
+# Agent Installation Helper Functions
+# =============================================================================
+
+def ensure_agent_installed(agent: str, project_dir: Path) -> None:
+    """
+    Ensure agent configuration is installed in project.
+    Auto-download if not present.
+
+    Args:
+        agent: Agent name (claude, codex, etc.)
+        project_dir: Project directory path
+    """
+    if agent not in AGENT_CONFIG:
+        console.print(f"[red]Error:[/red] Unknown agent '{agent}'")
+        console.print(f"[dim]Available agents: {', '.join(AGENT_CONFIG.keys())}[/dim]")
+        raise typer.Exit(1)
+
+    agent_config = AGENT_CONFIG[agent]
+    agent_folder = project_dir / agent_config["folder"]
+
+    if agent_folder.exists():
+        # Already installed
+        return
+
+    console.print(f"[cyan]Installing {agent_config['name']} configuration...[/cyan]")
+
+    # Download agent-specific template from GitHub
+    # Use the existing download_and_extract_template function
+    try:
+        # Determine script type based on OS
+        script_type = "ps" if os.name == "nt" else "sh"
+
+        download_and_extract_template(
+            project_path=project_dir,
+            ai_assistant=agent,
+            script_type=script_type,
+            is_current_dir=True,  # Install into current directory
+            verbose=False,
+            tracker=None,
+            client=client,
+            debug=False,
+            github_token=None
+        )
+
+        console.print(f"[green]✓[/green] {agent_config['name']} configuration installed")
+    except Exception as e:
+        console.print(f"[red]Error installing {agent_config['name']}:[/red] {e}")
+        raise typer.Exit(1)
+
+def select_agent_interactive() -> str:
+    """
+    Interactively select an AI agent from available options.
+
+    Returns:
+        Selected agent name
+    """
+    console.print("\n[bold cyan]Select AI Agent:[/bold cyan]")
+
+    # Get available agents (only claude for now)
+    available_agents = ["claude"]
+
+    if len(available_agents) == 1:
+        # Only one agent available, auto-select
+        agent = available_agents[0]
+        console.print(f"[dim]Auto-selecting {AGENT_CONFIG[agent]['name']}[/dim]")
+        return agent
+
+    # Display options
+    for idx, agent in enumerate(available_agents, 1):
+        agent_info = AGENT_CONFIG[agent]
+        console.print(f"  {idx}. {agent_info['name']}")
+
+    # Get user input
+    while True:
+        try:
+            choice = console.input("[cyan]Enter number (1-{}): [/cyan]".format(len(available_agents)))
+            choice_num = int(choice)
+            if 1 <= choice_num <= len(available_agents):
+                selected = available_agents[choice_num - 1]
+                console.print(f"[green]✓[/green] Selected {AGENT_CONFIG[selected]['name']}")
+                return selected
+            else:
+                console.print("[red]Invalid choice. Please try again.[/red]")
+        except (ValueError, KeyboardInterrupt):
+            console.print("\n[yellow]Selection cancelled[/yellow]")
+            raise typer.Exit(1)
+
+# =============================================================================
+# GitHub API Helper Functions
+# =============================================================================
 
 def _github_token(cli_token: str | None = None) -> str | None:
     """Return sanitized GitHub token (cli arg takes precedence) or None."""
@@ -233,15 +476,15 @@ SCRIPT_TYPE_CHOICES = {"sh": "POSIX Shell (bash/zsh)", "ps": "PowerShell"}
 CLAUDE_LOCAL_PATH = Path.home() / ".claude" / "local" / "claude"
 
 BANNER = """
-███████╗██████╗ ███████╗ ██████╗██╗███████╗██╗   ██╗
-██╔════╝██╔══██╗██╔════╝██╔════╝██║██╔════╝╚██╗ ██╔╝
-███████╗██████╔╝█████╗  ██║     ██║█████╗   ╚████╔╝ 
-╚════██║██╔═══╝ ██╔══╝  ██║     ██║██╔══╝    ╚██╔╝  
-███████║██║     ███████╗╚██████╗██║██║        ██║   
-╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝╚═╝        ╚═╝   
+███████╗██████╗ ███████╗ ██████╗██╗███████╗██╗   ██╗    ███████╗██╗  ██╗
+██╔════╝██╔══██╗██╔════╝██╔════╝██║██╔════╝╚██╗ ██╔╝    ██╔════╝╚██╗██╔╝
+███████╗██████╔╝█████╗  ██║     ██║█████╗   ╚████╔╝     █████╗   ╚███╔╝
+╚════██║██╔═══╝ ██╔══╝  ██║     ██║██╔══╝    ╚██╔╝      ██╔══╝   ██╔██╗
+███████║██║     ███████╗╚██████╗██║██║        ██║       ███████╗██╔╝ ██╗
+╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝╚═╝        ╚═╝       ╚══════╝╚═╝  ╚═╝
 """
 
-TAGLINE = "GitHub Spec Kit - Spec-Driven Development Toolkit"
+TAGLINE = "GitHub Spec Kit EX - Spec-Driven Development Toolkit"
 class StepTracker:
     """Track and render hierarchical steps without emojis, similar to Claude Code tree output.
     Supports live auto-refresh via an attached refresh callback.
@@ -435,7 +678,7 @@ class BannerGroup(TyperGroup):
 
 app = typer.Typer(
     name="specify",
-    help="Setup tool for Specify spec-driven development projects",
+    help="Setup tool for Specify EX spec-driven development projects",
     add_completion=False,
     invoke_without_command=True,
     cls=BannerGroup,
@@ -452,7 +695,9 @@ def show_banner():
         styled_banner.append(line + "\n", style=color)
 
     console.print(Align.center(styled_banner))
-    console.print(Align.center(Text(TAGLINE, style="italic bright_yellow")))
+    console.print(Align.center(Text(t("tagline"), style="italic bright_yellow")))
+    if "banner_subtitle" in I18N.get(_current_lang, {}):
+        console.print(Align.center(Text(t("banner_subtitle"), style="dim")))
     console.print()
 
 @app.callback()
@@ -460,7 +705,7 @@ def callback(ctx: typer.Context):
     """Show banner when no subcommand is provided."""
     if ctx.invoked_subcommand is None and "--help" not in sys.argv and "-h" not in sys.argv:
         show_banner()
-        console.print(Align.center("[dim]Run 'specify --help' for usage information[/dim]"))
+        console.print(Align.center(f"[dim]{t('help_usage')}[/dim]"))
         console.print()
 
 def run_command(cmd: list[str], check_return: bool = True, capture: bool = False, shell: bool = False) -> Optional[str]:
@@ -549,7 +794,7 @@ def init_git_repo(project_path: Path, quiet: bool = False) -> Tuple[bool, Option
             console.print("[cyan]Initializing git repository...[/cyan]")
         subprocess.run(["git", "init"], check=True, capture_output=True, text=True)
         subprocess.run(["git", "add", "."], check=True, capture_output=True, text=True)
-        subprocess.run(["git", "commit", "-m", "Initial commit from Specify template"], check=True, capture_output=True, text=True)
+        subprocess.run(["git", "commit", "-m", "Initial commit from Specify EX template"], check=True, capture_output=True, text=True)
         if not quiet:
             console.print("[green]✓[/green] Git repository initialized")
         return True, None
@@ -942,10 +1187,91 @@ def ensure_executable_scripts(project_path: Path, tracker: StepTracker | None = 
             for f in failures:
                 console.print(f"  - {f}")
 
+def install_common_templates(project_dir: Path, lang: str, tracker: StepTracker = None) -> None:
+    """Install language-specific templates to project.
+
+    Args:
+        project_dir: Project directory path
+        lang: Language code (ja or en)
+        tracker: Optional StepTracker for progress display
+
+    Processing flow:
+        1. Read from specify_cli/templates/{lang}/
+        2. Copy to project's .specify/templates/
+        3. Overwrite with enabled-flag templates
+        4. Fallback: Use English if specified language doesn't exist
+
+    Target templates:
+        - constitution-template.md
+        - spec-template.md
+        - plan-template.md (for reference, AI generates dynamically)
+        - tasks-template.md (for reference, AI generates dynamically)
+        - checklist-template.md (for reference, AI generates dynamically)
+    """
+    if tracker:
+        tracker.step("Installing language-specific templates")
+
+    # Get template directory (check multiple locations for dev vs installed)
+    templates_root = None
+
+    # Try 1: Installed location (sys.prefix/share/specify-ex-cli/templates)
+    installed_path = Path(sys.prefix) / "share" / "specify-ex-cli" / "templates"
+    if installed_path.exists():
+        templates_root = installed_path
+
+    # Try 2: Development location (project_root/templates)
+    if templates_root is None:
+        dev_path = Path(__file__).parent.parent.parent / "templates"
+        if dev_path.exists():
+            templates_root = dev_path
+
+    if templates_root is None:
+        if tracker:
+            tracker.warn("No templates found in package or development directory")
+        return
+
+    templates_source = templates_root / lang
+
+    # Fallback to English if language doesn't exist
+    if not templates_source.exists():
+        if tracker:
+            tracker.warn(f"Language '{lang}' templates not found, using English")
+        templates_source = templates_root / "en"
+
+    if not templates_source.exists():
+        if tracker:
+            tracker.warn("No templates found for selected language")
+        return
+
+    # Create destination directory
+    templates_dest = project_dir / ".specify" / "templates"
+    templates_dest.mkdir(parents=True, exist_ok=True)
+
+    # Copy template files
+    template_files = [
+        "constitution-template.md",
+        "spec-template.md",
+        "plan-template.md",
+        "tasks-template.md",
+        "checklist-template.md",
+    ]
+
+    copied = 0
+    for template_file in template_files:
+        source_file = templates_source / template_file
+        if source_file.exists():
+            dest_file = templates_dest / template_file
+            shutil.copy2(source_file, dest_file)
+            copied += 1
+
+    if tracker and copied > 0:
+        tracker.success(f"Installed {copied} template(s) ({lang})")
+
 @app.command()
 def init(
     project_name: str = typer.Argument(None, help="Name for your new project directory (optional if using --here, or use '.' for current directory)"),
     ai_assistant: str = typer.Option(None, "--ai", help="AI assistant to use: claude, gemini, copilot, cursor-agent, qwen, opencode, codex, windsurf, kilocode, auggie, codebuddy, amp, shai, q, bob, or qoder "),
+    lang: str = typer.Option("en", "--lang", help="Language for templates and messages: ja (Japanese) or en (English)"),
     script_type: str = typer.Option(None, "--script", help="Script type to use: sh or ps"),
     ignore_agent_tools: bool = typer.Option(False, "--ignore-agent-tools", help="Skip checks for AI agent tools like Claude Code"),
     no_git: bool = typer.Option(False, "--no-git", help="Skip git repository initialization"),
@@ -956,7 +1282,7 @@ def init(
     github_token: str = typer.Option(None, "--github-token", help="GitHub token to use for API requests (or set GH_TOKEN or GITHUB_TOKEN environment variable)"),
 ):
     """
-    Initialize a new Specify project from the latest template.
+    Initialize a new Specify EX project from the latest template.
     
     This command will:
     1. Check that required tools are installed (git is optional)
@@ -979,6 +1305,8 @@ def init(
         specify init --here
         specify init --here --force  # Skip confirmation when current directory not empty
     """
+    # Set language for this session
+    set_lang(lang)
 
     show_banner()
 
@@ -1026,7 +1354,7 @@ def init(
     current_dir = Path.cwd()
 
     setup_lines = [
-        "[cyan]Specify Project Setup[/cyan]",
+        "[cyan]Specify EX Project Setup[/cyan]",
         "",
         f"{'Project':<15} [green]{project_path.name}[/green]",
         f"{'Working Path':<15} [dim]{current_dir}[/dim]",
@@ -1091,7 +1419,7 @@ def init(
     console.print(f"[cyan]Selected AI assistant:[/cyan] {selected_ai}")
     console.print(f"[cyan]Selected script type:[/cyan] {selected_script}")
 
-    tracker = StepTracker("Initialize Specify Project")
+    tracker = StepTracker("Initialize Specify EX Project")
 
     sys._specify_tracker_active = True
 
@@ -1125,6 +1453,52 @@ def init(
             local_client = httpx.Client(verify=local_ssl_context)
 
             download_and_extract_template(project_path, selected_ai, selected_script, here, verbose=False, tracker=tracker, client=local_client, debug=debug, github_token=github_token)
+
+            # Install language-specific templates
+            install_common_templates(project_path, lang, tracker=tracker)
+
+            # Save language configuration
+            config_dir = project_path / ".specify" / "memory"
+            config_dir.mkdir(parents=True, exist_ok=True)
+            config_file = config_dir / "config.json"
+            config_data = {
+                "language": {
+                    "code": lang,
+                    "name": LANGUAGE_NAMES.get(lang, lang),
+                    "set_at": "project_initialization"
+                },
+                "project": {
+                    "name": project_name
+                }
+            }
+            with open(config_file, "w", encoding="utf-8") as f:
+                json.dump(config_data, f, indent=2, ensure_ascii=False)
+
+            # Create CLAUDE.md at project root (if Claude is selected)
+            if selected_ai == "claude":
+                claude_md_path = project_path / "CLAUDE.md"
+                claude_md_content = f"""# Claude Code Configuration
+
+## Language Settings
+
+This project uses **{LANGUAGE_NAMES.get(lang, lang)}** ({lang}).
+
+Language configuration is stored in `.specify/memory/config.json`.
+
+## Templates
+
+Templates are located in `.specify/templates/` directory.
+- constitution-template.md: Project constitution template
+- spec-template.md: Feature specification template
+
+## Usage
+
+When running `/speckit.*` commands, Claude Code will automatically use the configured language for content generation.
+
+Generated at: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
+"""
+                with open(claude_md_path, "w", encoding="utf-8") as f:
+                    f.write(claude_md_content)
 
             ensure_executable_scripts(project_path, tracker=tracker)
 
@@ -1274,7 +1648,7 @@ def check():
 
     console.print(tracker.render())
 
-    console.print("\n[bold green]Specify CLI is ready to use![/bold green]")
+    console.print("\n[bold green]Specify EX CLI is ready to use![/bold green]")
 
     if not git_ok:
         console.print("[dim]Tip: Install git for repository management[/dim]")
@@ -1353,13 +1727,794 @@ def version():
 
     panel = Panel(
         info_table,
-        title="[bold cyan]Specify CLI Information[/bold cyan]",
+        title="[bold cyan]Specify EX CLI Information[/bold cyan]",
         border_style="cyan",
         padding=(1, 2)
     )
 
     console.print(panel)
     console.print()
+
+# =============================================================================
+# Phase 4: Document Management Helper Functions
+# =============================================================================
+
+def detect_source_directory(project_dir: Path) -> Optional[Path]:
+    """
+    Auto-detect source directory in project.
+
+    Args:
+        project_dir: Project directory path
+
+    Returns:
+        Path to source directory, or None if not found
+    """
+    # Common source directory names (priority order)
+    candidates = ["src", "app", "lib", "pkg", "source", "code", "core"]
+
+    for candidate in candidates:
+        src_path = project_dir / candidate
+        if src_path.exists() and src_path.is_dir():
+            return src_path
+
+    return None
+
+def generate_index_md(dir_path: Path, relative_to: Path) -> str:
+    """
+    Generate index.md content with directory structure and file list.
+
+    Args:
+        dir_path: Directory to document
+        relative_to: Base directory for relative paths
+
+    Returns:
+        Markdown content for index.md
+    """
+    rel_path = dir_path.relative_to(relative_to)
+    content = f"# Index: {rel_path}\n\n"
+    content += "## Directory Structure\n\n```\n"
+
+    # List files and directories
+    try:
+        items = sorted(dir_path.iterdir())
+        for item in items:
+            if item.name.startswith("."):
+                continue
+            if item.name in ["node_modules", "__pycache__", "venv", "env", "dist", "build"]:
+                continue
+
+            prefix = "📁 " if item.is_dir() else "📄 "
+            content += f"{prefix}{item.name}\n"
+    except PermissionError:
+        content += "(Permission denied)\n"
+
+    content += "```\n\n"
+    content += "## Files\n\n"
+
+    # List file documentation links
+    try:
+        items = sorted(dir_path.iterdir())
+        for item in items:
+            if item.is_file() and not item.name.startswith("."):
+                stem = item.stem
+                content += f"- [{item.name}](./{stem}.md)\n"
+    except PermissionError:
+        content += "(Permission denied)\n"
+
+    return content
+
+def generate_readme_md(dir_path: Path, relative_to: Path) -> str:
+    """
+    Generate README.md content with detailed specification template.
+
+    Args:
+        dir_path: Directory to document
+        relative_to: Base directory for relative paths
+
+    Returns:
+        Markdown content for README.md
+    """
+    rel_path = dir_path.relative_to(relative_to)
+    content = f"# {rel_path}\n\n"
+    content += "## Purpose\n\n"
+    content += "[Describe the purpose of this directory]\n\n"
+    content += "## Architecture\n\n"
+    content += "[Describe the architecture and design patterns used]\n\n"
+    content += "## Key Components\n\n"
+    content += "[List and describe key components]\n\n"
+    content += "## Dependencies\n\n"
+    content += "[List dependencies and their purposes]\n\n"
+    return content
+
+def generate_file_md(file_path: Path, relative_to: Path) -> str:
+    """
+    Generate {filename}.md content for individual file documentation.
+
+    Args:
+        file_path: File to document
+        relative_to: Base directory for relative paths
+
+    Returns:
+        Markdown content for file documentation
+    """
+    rel_path = file_path.relative_to(relative_to)
+    content = f"# {file_path.name}\n\n"
+    content += f"**Path**: `{rel_path}`\n\n"
+    content += "## Purpose\n\n"
+    content += "[Describe the purpose of this file]\n\n"
+    content += "## Key Functions/Classes\n\n"
+    content += "[List and describe key functions or classes]\n\n"
+    content += "## Dependencies\n\n"
+    content += "[List dependencies]\n\n"
+    content += "## Change History\n\n"
+    content += f"### {datetime.now().strftime('%Y-%m-%d')}: Initial documentation\n\n"
+    content += "- Created documentation\n\n"
+    return content
+
+def sync_directory_docs(src_dir: Path, docs_dir: Path, auto: bool = False) -> int:
+    """
+    Recursively sync documentation for directory tree.
+
+    Args:
+        src_dir: Source directory to document
+        docs_dir: Documentation output directory
+        auto: If True, overwrite existing files
+
+    Returns:
+        Number of files generated
+    """
+    count = 0
+
+    # Create docs directory if not exists
+    docs_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generate index.md
+    index_path = docs_dir / "index.md"
+    if auto or not index_path.exists():
+        index_content = generate_index_md(src_dir, src_dir.parent)
+        index_path.write_text(index_content, encoding="utf-8")
+        count += 1
+
+    # Generate README.md
+    readme_path = docs_dir / "README.md"
+    if auto or not readme_path.exists():
+        readme_content = generate_readme_md(src_dir, src_dir.parent)
+        readme_path.write_text(readme_content, encoding="utf-8")
+        count += 1
+
+    # Generate file documentation
+    try:
+        for item in sorted(src_dir.iterdir()):
+            if item.name.startswith("."):
+                continue
+            if item.name in ["node_modules", "__pycache__", "venv", "env", "dist", "build"]:
+                continue
+
+            if item.is_file():
+                # Generate {filename}.md
+                doc_path = docs_dir / f"{item.stem}.md"
+                if auto or not doc_path.exists():
+                    file_content = generate_file_md(item, src_dir.parent)
+                    doc_path.write_text(file_content, encoding="utf-8")
+                    count += 1
+
+            elif item.is_dir():
+                # Recursively process subdirectory
+                sub_docs_dir = docs_dir / item.name
+                count += sync_directory_docs(item, sub_docs_dir, auto)
+
+    except PermissionError:
+        console.print(f"[yellow]Warning:[/yellow] Permission denied for {src_dir}")
+
+    return count
+
+def get_changed_files(project_dir: Path) -> list[str]:
+    """
+    Get list of changed files using git diff.
+
+    Args:
+        project_dir: Project directory path
+
+    Returns:
+        List of changed file paths relative to project directory
+    """
+    try:
+        # Get git diff for staged and unstaged changes
+        result = subprocess.run(
+            ["git", "diff", "--name-only", "HEAD"],
+            cwd=project_dir,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
+        changed_files = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+        return changed_files
+
+    except subprocess.CalledProcessError:
+        # Not a git repository or no changes
+        return []
+
+def find_doc_file(file_path: Path, docs_dir: Path) -> Optional[Path]:
+    """
+    Find corresponding documentation file for a source file.
+
+    Args:
+        file_path: Source file path (relative to project root)
+        docs_dir: Documentation directory (.specify/docs/)
+
+    Returns:
+        Path to documentation file, or None if not found
+    """
+    # Extract relative path components
+    parts = file_path.parts
+
+    # Skip initial directories until we find src, app, lib, etc.
+    src_index = -1
+    for i, part in enumerate(parts):
+        if part in ["src", "app", "lib", "pkg", "source", "code", "core"]:
+            src_index = i
+            break
+
+    if src_index == -1:
+        return None
+
+    # Construct documentation path
+    # docs_dir / src / ... / {filename}.md
+    src_name = parts[src_index]
+    relative_parts = parts[src_index + 1:]
+
+    if len(relative_parts) == 0:
+        return None
+
+    # Build path to documentation file
+    doc_path = docs_dir / src_name
+    for part in relative_parts[:-1]:
+        doc_path = doc_path / part
+
+    # Get filename without extension
+    filename = relative_parts[-1]
+    stem = Path(filename).stem
+    doc_path = doc_path / f"{stem}.md"
+
+    return doc_path if doc_path.exists() else None
+
+def append_change_history(doc_file: Path, message: str, timestamp: datetime) -> None:
+    """
+    Append change history to documentation file.
+
+    Args:
+        doc_file: Documentation file path
+        message: Change message
+        timestamp: Change timestamp
+    """
+    # Read existing content
+    content = doc_file.read_text(encoding="utf-8")
+
+    # Check if "## Change History" section exists
+    if "## Change History" not in content:
+        # Add Change History section before the end
+        content += f"\n## Change History\n\n"
+
+    # Format new entry
+    date_str = timestamp.strftime("%Y-%m-%d")
+    entry = f"### {date_str}: Implementation update\n\n- {message}\n\n"
+
+    # Insert after "## Change History" header
+    lines = content.splitlines(keepends=True)
+    new_lines = []
+    inserted = False
+
+    for i, line in enumerate(lines):
+        new_lines.append(line)
+        if "## Change History" in line and not inserted:
+            # Skip empty lines after header
+            j = i + 1
+            while j < len(lines) and lines[j].strip() == "":
+                new_lines.append(lines[j])
+                j += 1
+
+            # Insert new entry
+            new_lines.append(entry)
+            inserted = True
+
+            # Add remaining lines
+            new_lines.extend(lines[j:])
+            break
+
+    # Write updated content
+    doc_file.write_text("".join(new_lines), encoding="utf-8")
+
+def record_implementation_changes(project_dir: Path) -> int:
+    """
+    Record implementation changes to documentation files.
+
+    Args:
+        project_dir: Project directory path
+
+    Returns:
+        Number of documentation files updated
+    """
+    # Get changed files
+    changed_files = get_changed_files(project_dir)
+    if not changed_files:
+        return 0
+
+    docs_dir = project_dir / ".specify" / "docs"
+    if not docs_dir.exists():
+        return 0
+
+    count = 0
+    timestamp = datetime.now()
+
+    for file_str in changed_files:
+        file_path = Path(file_str)
+
+        # Find corresponding documentation file
+        doc_file = find_doc_file(file_path, docs_dir)
+        if doc_file:
+            # Append change history
+            message = f"Updated {file_path.name}"
+            append_change_history(doc_file, message, timestamp)
+            count += 1
+
+    return count
+
+# =============================================================================
+# Phase 3: Spec-Driven Commands
+# =============================================================================
+
+class AgentExecutor:
+    """Execute commands with specific AI agent."""
+
+    def __init__(self, agent_name: str, project_dir: Path):
+        """
+        Initialize AgentExecutor.
+
+        Args:
+            agent_name: Agent name (claude, codex, gemini, etc.)
+            project_dir: Project directory path
+        """
+        if agent_name not in AGENT_CONFIG:
+            raise ValueError(f"Unknown agent: {agent_name}")
+
+        self.agent = agent_name
+        self.config = AGENT_CONFIG[agent_name]
+        self.project_dir = project_dir
+
+    def execute(self, command: str, prompt: str = "") -> Path:
+        """
+        Execute agent command and return output file path.
+
+        Args:
+            command: Command name (constitution, specify, plan, etc.)
+            prompt: Additional prompt text
+
+        Returns:
+            Path to generated output file
+
+        Raises:
+            RuntimeError: If execution fails
+        """
+        console.print(f"[cyan]Executing /{command} with {self.config['name']}...[/cyan]")
+
+        # Execute based on agent type
+        if self.agent == "claude":
+            return self._execute_claude(command, prompt)
+        elif self.agent == "codex":
+            return self._execute_codex(command, prompt)
+        elif self.agent == "gemini":
+            return self._execute_gemini(command, prompt)
+        else:
+            # Generic execution for other agents
+            return self._execute_generic(command, prompt)
+
+    def _execute_claude(self, command: str, prompt: str = "") -> Path:
+        """Execute command with Claude Code."""
+        # Check if Claude is installed
+        if not check_tool("claude"):
+            raise RuntimeError("Claude Code is not installed. Install from: https://docs.anthropic.com/en/docs/claude-code/setup")
+
+        # Build slash command prompt
+        slash_command = f"/speckit.{command}"
+        if prompt:
+            slash_command += f" {prompt}"
+
+        # Execute Claude Code
+        try:
+            # Change to project directory
+            original_dir = Path.cwd()
+            os.chdir(self.project_dir)
+
+            # Run claude command with slash command as prompt
+            result = subprocess.run(
+                ["claude", "--print", slash_command],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+
+            os.chdir(original_dir)
+
+            # Determine output path based on command
+            output_path = self._get_output_path(command)
+            console.print(f"[green]✓[/green] Command completed")
+
+            # Display Claude's output
+            if result.stdout:
+                console.print(f"\n[dim]{result.stdout}[/dim]")
+
+            return output_path
+
+        except subprocess.CalledProcessError as e:
+            os.chdir(original_dir)
+            console.print(f"[red]Error executing Claude Code:[/red] {e}")
+            if e.stderr:
+                console.print(f"[dim]{e.stderr}[/dim]")
+            raise RuntimeError(f"Claude Code execution failed: {e}")
+
+    def _execute_codex(self, command: str, prompt: str = "") -> Path:
+        """Execute command with Codex CLI."""
+        if not check_tool("codex"):
+            raise RuntimeError("Codex CLI is not installed. Install from: https://github.com/openai/codex")
+
+        # Similar to Claude, but with codex CLI syntax
+        slash_command = f"/speckit.{command}"
+        if prompt:
+            slash_command += f" {prompt}"
+
+        try:
+            original_dir = Path.cwd()
+            os.chdir(self.project_dir)
+
+            # Run codex command (adjust based on actual codex CLI)
+            subprocess.run(
+                ["codex", "run", "--command", slash_command],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+
+            os.chdir(original_dir)
+
+            output_path = self._get_output_path(command)
+            console.print(f"[green]✓[/green] Command completed")
+
+            return output_path
+
+        except subprocess.CalledProcessError as e:
+            os.chdir(original_dir)
+            console.print(f"[red]Error executing Codex:[/red] {e}")
+            raise RuntimeError(f"Codex execution failed: {e}")
+
+    def _execute_gemini(self, command: str, prompt: str = "") -> Path:
+        """Execute command with Gemini CLI."""
+        if not check_tool("gemini"):
+            raise RuntimeError("Gemini CLI is not installed. Install from: https://github.com/google-gemini/gemini-cli")
+
+        slash_command = f"/speckit.{command}"
+        if prompt:
+            slash_command += f" {prompt}"
+
+        try:
+            original_dir = Path.cwd()
+            os.chdir(self.project_dir)
+
+            # Run gemini-cli command
+            subprocess.run(
+                ["gemini-cli", "execute", slash_command],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+
+            os.chdir(original_dir)
+
+            output_path = self._get_output_path(command)
+            console.print(f"[green]✓[/green] Command completed")
+
+            return output_path
+
+        except subprocess.CalledProcessError as e:
+            os.chdir(original_dir)
+            console.print(f"[red]Error executing Gemini CLI:[/red] {e}")
+            raise RuntimeError(f"Gemini CLI execution failed: {e}")
+
+    def _execute_generic(self, command: str, _prompt: str = "") -> Path:
+        """Generic execution for other agents (placeholder)."""
+        console.print(f"[yellow]Warning:[/yellow] Generic execution for {self.agent} not fully implemented")
+        console.print(f"[yellow]Please manually run:[/yellow] /speckit.{command}")
+
+        # Return expected output path
+        return self._get_output_path(command)
+
+    def _get_output_path(self, command: str) -> Path:
+        """Get output path for command based on responsibility separation architecture."""
+        if command == "constitution":
+            return self.project_dir / ".claude" / "rules" / "constitution.md"
+        elif command in ["specify", "plan", "tasks"]:
+            # TODO: Determine feature-id from git branch or environment variable
+            feature_id = "current"
+            specs_dir = self.project_dir / ".specify" / "specs" / feature_id
+            return specs_dir / f"{command}.md"
+        elif command == "implement":
+            # implement doesn't generate a file, executes implementation
+            return self.project_dir
+        else:
+            return self.project_dir / f"{command}.md"
+
+@app.command()
+def constitution(
+    ai: str = typer.Option(None, "--ai", help="AI agent to use (single agent)"),
+    project_dir: Path = typer.Option(None, "--dir", help="Project directory (default: current)"),
+):
+    """
+    Create project constitution using specified AI agent.
+
+    Examples:
+        specify-ex constitution --ai claude
+        specify-ex constitution
+    """
+    if project_dir is None:
+        project_dir = Path.cwd()
+
+    if ai:
+        # Single agent execution
+        console.print(f"[cyan]Creating constitution with {AGENT_CONFIG[ai]['name']}...[/cyan]")
+
+        # Check if agent is installed, if not, auto-install
+        ensure_agent_installed(ai, project_dir)
+
+        # Execute agent with constitution command
+        executor = AgentExecutor(ai, project_dir)
+        output_path = executor.execute("constitution")
+
+        console.print("[green]✓[/green] Constitution created successfully")
+        console.print(f"[dim]Output: {output_path}[/dim]")
+    else:
+        # Interactive selection
+        selected_agent = select_agent_interactive()
+
+        # Execute with selected agent
+        ensure_agent_installed(selected_agent, project_dir)
+        executor = AgentExecutor(selected_agent, project_dir)
+        output_path = executor.execute("constitution")
+
+        console.print("[green]✓[/green] Constitution created successfully")
+        console.print(f"[dim]Output: {output_path}[/dim]")
+
+@app.command()
+def specify(
+    prompt: str = typer.Argument(None, help="Feature description or requirement"),
+    ai: str = typer.Option(None, "--ai", help="AI agent to use (single agent)"),
+    project_dir: Path = typer.Option(None, "--dir", help="Project directory (default: current)"),
+):
+    """
+    Create feature specification using specified AI agent.
+
+    Examples:
+        specify-ex specify --ai claude "Add user authentication"
+        specify-ex specify "Add dark mode toggle"
+    """
+    if project_dir is None:
+        project_dir = Path.cwd()
+
+    if ai:
+        # Single agent execution
+        console.print(f"[cyan]Creating specification with {AGENT_CONFIG[ai]['name']}...[/cyan]")
+
+        # Check if agent is installed, if not, auto-install
+        ensure_agent_installed(ai, project_dir)
+
+        # Execute agent with specify command
+        executor = AgentExecutor(ai, project_dir)
+        output_path = executor.execute("specify", prompt or "")
+
+        console.print("[green]✓[/green] Specification created successfully")
+        console.print(f"[dim]Output: {output_path}[/dim]")
+    else:
+        # Interactive selection
+        selected_agent = select_agent_interactive()
+
+        # Execute with selected agent
+        ensure_agent_installed(selected_agent, project_dir)
+        executor = AgentExecutor(selected_agent, project_dir)
+        output_path = executor.execute("specify", prompt or "")
+
+        console.print("[green]✓[/green] Specification created successfully")
+        console.print(f"[dim]Output: {output_path}[/dim]")
+
+@app.command()
+def plan(
+    ai: str = typer.Option(None, "--ai", help="AI agent to use (single agent)"),
+    project_dir: Path = typer.Option(None, "--dir", help="Project directory (default: current)"),
+):
+    """
+    Create implementation plan using specified AI agent.
+
+    Examples:
+        specify-ex plan --ai claude
+        specify-ex plan
+    """
+    if project_dir is None:
+        project_dir = Path.cwd()
+
+    if ai:
+        # Single agent execution
+        console.print(f"[cyan]Creating implementation plan with {AGENT_CONFIG[ai]['name']}...[/cyan]")
+
+        # Check if agent is installed, if not, auto-install
+        ensure_agent_installed(ai, project_dir)
+
+        # Execute agent with plan command
+        executor = AgentExecutor(ai, project_dir)
+        output_path = executor.execute("plan")
+
+        console.print("[green]✓[/green] Implementation plan created successfully")
+        console.print(f"[dim]Output: {output_path}[/dim]")
+    else:
+        # Interactive selection
+        selected_agent = select_agent_interactive()
+
+        # Execute with selected agent
+        ensure_agent_installed(selected_agent, project_dir)
+        executor = AgentExecutor(selected_agent, project_dir)
+        output_path = executor.execute("plan")
+
+        console.print("[green]✓[/green] Implementation plan created successfully")
+        console.print(f"[dim]Output: {output_path}[/dim]")
+
+@app.command()
+def tasks(
+    ai: str = typer.Option(None, "--ai", help="AI agent to use (single agent)"),
+    project_dir: Path = typer.Option(None, "--dir", help="Project directory (default: current)"),
+):
+    """
+    Generate task breakdown using specified AI agent.
+
+    Examples:
+        specify-ex tasks --ai claude
+        specify-ex tasks
+    """
+    if project_dir is None:
+        project_dir = Path.cwd()
+
+    if ai:
+        # Single agent execution
+        console.print(f"[cyan]Breaking down into tasks with {AGENT_CONFIG[ai]['name']}...[/cyan]")
+
+        # Check if agent is installed, if not, auto-install
+        ensure_agent_installed(ai, project_dir)
+
+        # Execute agent with tasks command
+        executor = AgentExecutor(ai, project_dir)
+        output_path = executor.execute("tasks")
+
+        console.print("[green]✓[/green] Task breakdown created successfully")
+        console.print(f"[dim]Output: {output_path}[/dim]")
+    else:
+        # Interactive selection
+        selected_agent = select_agent_interactive()
+
+        # Execute with selected agent
+        ensure_agent_installed(selected_agent, project_dir)
+        executor = AgentExecutor(selected_agent, project_dir)
+        output_path = executor.execute("tasks")
+
+        console.print("[green]✓[/green] Task breakdown created successfully")
+        console.print(f"[dim]Output: {output_path}[/dim]")
+
+@app.command()
+def implement(
+    ai: str = typer.Option(None, "--ai", help="AI agent to use (single agent)"),
+    project_dir: Path = typer.Option(None, "--dir", help="Project directory (default: current)"),
+):
+    """
+    Execute implementation based on tasks using specified AI agent.
+
+    Examples:
+        specify-ex implement --ai claude
+        specify-ex implement
+    """
+    if project_dir is None:
+        project_dir = Path.cwd()
+
+    if ai:
+        # Single agent execution
+        console.print(f"[cyan]Executing implementation with {AGENT_CONFIG[ai]['name']}...[/cyan]")
+
+        # Check if agent is installed, if not, auto-install
+        ensure_agent_installed(ai, project_dir)
+
+        # Execute agent with implement command
+        executor = AgentExecutor(ai, project_dir)
+        output_path = executor.execute("implement")
+
+        # Record implementation changes to documentation
+        console.print("\n[cyan]Recording implementation changes...[/cyan]")
+        updated_count = record_implementation_changes(project_dir)
+        if updated_count > 0:
+            console.print(f"[green]✓[/green] Updated {updated_count} documentation file(s)")
+        else:
+            console.print("[dim]No documentation updates needed[/dim]")
+
+        console.print("[green]✓[/green] Implementation completed successfully")
+        console.print(f"[dim]Output: {output_path}[/dim]")
+    else:
+        # Interactive selection
+        selected_agent = select_agent_interactive()
+
+        # Execute with selected agent
+        ensure_agent_installed(selected_agent, project_dir)
+        executor = AgentExecutor(selected_agent, project_dir)
+        output_path = executor.execute("implement")
+
+        # Record implementation changes to documentation
+        console.print("\n[cyan]Recording implementation changes...[/cyan]")
+        updated_count = record_implementation_changes(project_dir)
+        if updated_count > 0:
+            console.print(f"[green]✓[/green] Updated {updated_count} documentation file(s)")
+        else:
+            console.print("[dim]No documentation updates needed[/dim]")
+
+        console.print("[green]✓[/green] Implementation completed successfully")
+        console.print(f"[dim]Output: {output_path}[/dim]")
+
+# =============================================================================
+# Phase 4: Document Management (Skeleton Implementation)
+# =============================================================================
+
+@app.command()
+def sync(
+    project_dir: Path = typer.Option(None, "--dir", help="Project directory (default: current)"),
+    src: str = typer.Option(None, "--src", help="Source directory (default: auto-detect)"),
+    auto: bool = typer.Option(False, "--auto", help="Auto-generate/overwrite all docs"),
+):
+    """
+    Sync project documentation to .specify/docs/
+
+    Automatically generates hierarchical documentation for your source code.
+    Each directory gets index.md (structure), README.md (overview), and {filename}.md (details).
+
+    Examples:
+        specify-ex sync
+        specify-ex sync --src src
+        specify-ex sync --auto
+    """
+    if project_dir is None:
+        project_dir = Path.cwd()
+
+    console.print("[cyan]Syncing project documentation...[/cyan]\n")
+
+    # Detect or use specified source directory
+    if src:
+        src_dir = project_dir / src
+        if not src_dir.exists():
+            console.print(f"[red]Error:[/red] Source directory '{src}' not found")
+            raise typer.Exit(1)
+    else:
+        src_dir = detect_source_directory(project_dir)
+        if src_dir is None:
+            console.print("[yellow]Warning:[/yellow] Could not auto-detect source directory")
+            console.print("[dim]Specify with --src, or use one of: src, app, lib, pkg, source, code, core[/dim]")
+            raise typer.Exit(1)
+
+    console.print(f"  Source directory: {src_dir.relative_to(project_dir)}")
+
+    # Create documentation directory
+    docs_dir = project_dir / ".specify" / "docs" / src_dir.name
+    console.print(f"  Documentation output: {docs_dir.relative_to(project_dir)}\n")
+
+    # Sync documentation
+    try:
+        count = sync_directory_docs(src_dir, docs_dir, auto)
+        console.print(f"\n[green]✓[/green] Documentation synced successfully")
+        console.print(f"  Generated/updated {count} file(s)")
+        console.print(f"  Output: {docs_dir.relative_to(project_dir)}")
+
+    except Exception as e:
+        console.print(f"[red]Error syncing documentation:[/red] {e}")
+        raise typer.Exit(1)
 
 def main():
     app()
