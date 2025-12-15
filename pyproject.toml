@@ -1,6 +1,6 @@
 [project]
 name = "specify-ex-cli"
-version = "0.1.0"
+version = "0.2.0"
 description = "Specify EX CLI - Extended version with multi-language support. Part of GitHub Spec Kit EX. A tool to bootstrap your projects for Spec-Driven Development (SDD)."
 requires-python = ">=3.11"
 dependencies = [
@@ -10,6 +10,7 @@ dependencies = [
     "platformdirs",
     "readchar",
     "truststore>=0.10.4",
+    "pyyaml",
 ]
 
 [project.scripts]
@@ -24,4 +25,5 @@ packages = ["src/specify_cli"]
 
 [tool.hatch.build.targets.wheel.shared-data]
 "templates" = "share/specify-ex-cli/templates"
+"templates/agent-configs" = "share/specify-ex-cli/templates/agent-configs"
 

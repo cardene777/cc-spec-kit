@@ -51,6 +51,7 @@ from typer.core import TyperGroup
 import readchar
 import ssl
 import truststore
+import yaml
 from datetime import datetime, timezone
 
 ssl_context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
@@ -97,6 +98,126 @@ I18N = {
 def t(key: str) -> str:
     """Get translated string for current language."""
     return I18N.get(_current_lang, I18N["en"]).get(key, key)
+
+# =============================================================================
+# Project Configuration Management
+# =============================================================================
+
+def load_project_config(project_dir: Path) -> dict:
+    """Load project configuration from .specify/memory/config.json
+
+    Args:
+        project_dir: Project root directory
+
+    Returns:
+        Configuration dictionary (returns default if file doesn't exist)
+    """
+    config_file = project_dir / ".specify" / "memory" / "config.json"
+    if config_file.exists():
+        return json.loads(config_file.read_text())
+    return {"language": "en", "version": "0.2.0"}
+
+def save_project_config(project_dir: Path, config: dict) -> None:
+    """Save project configuration to .specify/memory/config.json
+
+    Args:
+        project_dir: Project root directory
+        config: Configuration dictionary to save
+    """
+    config_dir = project_dir / ".specify" / "memory"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    config_file = config_dir / "config.json"
+    config["version"] = "0.2.0"
+    if "created_at" not in config:
+        config["created_at"] = datetime.now(timezone.utc).isoformat()
+    config_file.write_text(json.dumps(config, indent=2, ensure_ascii=False))
+
+def get_project_language(project_dir: Path) -> str:
+    """Get language setting from project config
+
+    Args:
+        project_dir: Project root directory
+
+    Returns:
+        Language code ("ja" or "en")
+    """
+    config = load_project_config(project_dir)
+    return config.get("language", "en")
+
+# =============================================================================
+# Template Loading
+# =============================================================================
+
+def parse_yaml_frontmatter(content: str) -> tuple[dict, str]:
+    """Parse YAML frontmatter from markdown content
+
+    Args:
+        content: Markdown file content
+
+    Returns:
+        Tuple of (frontmatter_dict, markdown_body)
+    """
+    if not content.startswith("---"):
+        return {}, content
+
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        return {}, content
+
+    frontmatter = yaml.safe_load(parts[1])
+    body = parts[2].strip()
+    return frontmatter or {}, body
+
+def get_templates_root() -> Path:
+    """Get templates root directory (dev or installed)
+
+    Returns:
+        Path to templates root directory
+
+    Raises:
+        RuntimeError: If templates directory not found
+    """
+    # Try installed location
+    installed_path = Path(sys.prefix) / "share" / "specify-ex-cli" / "templates"
+    if installed_path.exists():
+        return installed_path
+
+    # Try development location
+    dev_path = Path(__file__).parent.parent.parent / "templates"
+    if dev_path.exists():
+        return dev_path
+
+    raise RuntimeError("Templates directory not found")
+
+def load_template_if_enabled(command: str, project_dir: Path) -> Optional[str]:
+    """Load template if enabled flag is true
+
+    Args:
+        command: Command name (constitution, specify, plan, tasks)
+        project_dir: Project root directory
+
+    Returns:
+        Template content (without frontmatter) if enabled, None otherwise
+    """
+    # Get language setting
+    lang = get_project_language(project_dir)
+
+    # Find template file
+    templates_root = get_templates_root()
+    template_file = templates_root / lang / f"{command}-template.md"
+
+    if not template_file.exists():
+        return None
+
+    # Parse frontmatter
+    content = template_file.read_text(encoding="utf-8")
+    frontmatter, body = parse_yaml_frontmatter(content)
+
+    # Check enabled flag
+    if frontmatter.get("enabled", False):
+        return body
+
+    return None
 
 # =============================================================================
 # Agent Configuration
@@ -210,6 +331,31 @@ AGENT_CONFIG = {
 # =============================================================================
 # Agent Installation Helper Functions
 # =============================================================================
+
+def install_agent_config(ai: str, project_dir: Path) -> None:
+    """Install agent configuration file (CLAUDE.md or AGENTS.md)
+
+    Args:
+        ai: Agent name (claude, gemini, copilot, etc.)
+        project_dir: Project root directory
+    """
+    templates_root = get_templates_root()
+    agent_config = AGENT_CONFIG[ai]
+
+    # Determine source template
+    if ai == "claude":
+        source_file = templates_root / "agent-configs" / "CLAUDE.md"
+        dest_file = project_dir / agent_config["folder"] / "CLAUDE.md"
+    else:
+        source_file = templates_root / "agent-configs" / "AGENTS.md"
+        dest_file = project_dir / agent_config["folder"] / "AGENTS.md"
+
+    if not source_file.exists():
+        return
+
+    # Copy to destination
+    dest_file.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source_file, dest_file)
 
 def ensure_agent_installed(agent: str, project_dir: Path) -> None:
     """
@@ -1271,7 +1417,7 @@ def install_common_templates(project_dir: Path, lang: str, tracker: StepTracker 
 def init(
     project_name: str = typer.Argument(None, help="Name for your new project directory (optional if using --here, or use '.' for current directory)"),
     ai_assistant: str = typer.Option(None, "--ai", help="AI assistant to use: claude, gemini, copilot, cursor-agent, qwen, opencode, codex, windsurf, kilocode, auggie, codebuddy, amp, shai, q, bob, or qoder "),
-    lang: str = typer.Option("en", "--lang", help="Language for templates and messages: ja (Japanese) or en (English)"),
+    lang: str = typer.Option(None, "--lang", help="Language for templates and messages: ja (Japanese) or en (English)"),
     script_type: str = typer.Option(None, "--script", help="Script type to use: sh or ps"),
     ignore_agent_tools: bool = typer.Option(False, "--ignore-agent-tools", help="Skip checks for AI agent tools like Claude Code"),
     no_git: bool = typer.Option(False, "--no-git", help="Skip git repository initialization"),
@@ -1305,8 +1451,31 @@ def init(
         specify init --here
         specify init --here --force  # Skip confirmation when current directory not empty
     """
+    # Language selection
+    if lang:
+        # Validate language option
+        if lang not in SUPPORTED_LANGUAGES:
+            console.print(f"[red]Error:[/red] Unsupported language: {lang}")
+            console.print(f"[dim]Supported: {', '.join(SUPPORTED_LANGUAGES)}[/dim]")
+            raise typer.Exit(1)
+        selected_lang = lang
+    else:
+        # Interactive language selection
+        console.print("\n[cyan]Select language / 言語を選択してください:[/cyan]")
+        options = [
+            "[1] English",
+            "[2] 日本語 (Japanese)",
+        ]
+        for option in options:
+            console.print(f"  {option}")
+
+        choice = typer.prompt("Enter choice", type=int, default=1)
+        selected_lang = "en" if choice == 1 else "ja"
+
+    console.print(f"[cyan]Selected language:[/cyan] {LANGUAGE_NAMES[selected_lang]}\n")
+
     # Set language for this session
-    set_lang(lang)
+    set_lang(selected_lang)
 
     show_banner()
 
@@ -1455,50 +1624,7 @@ def init(
             download_and_extract_template(project_path, selected_ai, selected_script, here, verbose=False, tracker=tracker, client=local_client, debug=debug, github_token=github_token)
 
             # Install language-specific templates
-            install_common_templates(project_path, lang, tracker=tracker)
-
-            # Save language configuration
-            config_dir = project_path / ".specify" / "memory"
-            config_dir.mkdir(parents=True, exist_ok=True)
-            config_file = config_dir / "config.json"
-            config_data = {
-                "language": {
-                    "code": lang,
-                    "name": LANGUAGE_NAMES.get(lang, lang),
-                    "set_at": "project_initialization"
-                },
-                "project": {
-                    "name": project_name
-                }
-            }
-            with open(config_file, "w", encoding="utf-8") as f:
-                json.dump(config_data, f, indent=2, ensure_ascii=False)
-
-            # Create CLAUDE.md at project root (if Claude is selected)
-            if selected_ai == "claude":
-                claude_md_path = project_path / "CLAUDE.md"
-                claude_md_content = f"""# Claude Code Configuration
-
-## Language Settings
-
-This project uses **{LANGUAGE_NAMES.get(lang, lang)}** ({lang}).
-
-Language configuration is stored in `.specify/memory/config.json`.
-
-## Templates
-
-Templates are located in `.specify/templates/` directory.
-- constitution-template.md: Project constitution template
-- spec-template.md: Feature specification template
-
-## Usage
-
-When running `/speckit.*` commands, Claude Code will automatically use the configured language for content generation.
-
-Generated at: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
-"""
-                with open(claude_md_path, "w", encoding="utf-8") as f:
-                    f.write(claude_md_content)
+            install_common_templates(project_path, selected_lang, tracker=tracker)
 
             ensure_executable_scripts(project_path, tracker=tracker)
 
@@ -1539,7 +1665,13 @@ Generated at: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
 
     console.print(tracker.render())
     console.print("\n[bold green]Project ready.[/bold green]")
-    
+
+    # Save project configuration
+    save_project_config(project_path, {"language": selected_lang})
+
+    # Install agent configuration file
+    install_agent_config(selected_ai, project_path)
+
     # Show git error details if initialization failed
     if git_error_message:
         console.print()
@@ -2082,13 +2214,14 @@ class AgentExecutor:
         self.config = AGENT_CONFIG[agent_name]
         self.project_dir = project_dir
 
-    def execute(self, command: str, prompt: str = "") -> Path:
+    def execute(self, command: str, prompt: str = "", template_content: Optional[str] = None) -> Path:
         """
         Execute agent command and return output file path.
 
         Args:
             command: Command name (constitution, specify, plan, etc.)
             prompt: Additional prompt text
+            template_content: Template content to include in prompt (if enabled)
 
         Returns:
             Path to generated output file
@@ -2100,16 +2233,16 @@ class AgentExecutor:
 
         # Execute based on agent type
         if self.agent == "claude":
-            return self._execute_claude(command, prompt)
+            return self._execute_claude(command, prompt, template_content)
         elif self.agent == "codex":
-            return self._execute_codex(command, prompt)
+            return self._execute_codex(command, prompt, template_content)
         elif self.agent == "gemini":
-            return self._execute_gemini(command, prompt)
+            return self._execute_gemini(command, prompt, template_content)
         else:
             # Generic execution for other agents
-            return self._execute_generic(command, prompt)
+            return self._execute_generic(command, prompt, template_content)
 
-    def _execute_claude(self, command: str, prompt: str = "") -> Path:
+    def _execute_claude(self, command: str, prompt: str = "", template_content: Optional[str] = None) -> Path:
         """Execute command with Claude Code."""
         # Check if Claude is installed
         if not check_tool("claude"):
@@ -2117,8 +2250,13 @@ class AgentExecutor:
 
         # Build slash command prompt
         slash_command = f"/speckit.{command}"
+
+        # Add template content if provided
+        if template_content:
+            slash_command += f"\n\nTemplate:\n{template_content}"
+
         if prompt:
-            slash_command += f" {prompt}"
+            slash_command += f"\n\n{prompt}"
 
         # Execute Claude Code
         try:
@@ -2153,15 +2291,20 @@ class AgentExecutor:
                 console.print(f"[dim]{e.stderr}[/dim]")
             raise RuntimeError(f"Claude Code execution failed: {e}")
 
-    def _execute_codex(self, command: str, prompt: str = "") -> Path:
+    def _execute_codex(self, command: str, prompt: str = "", template_content: Optional[str] = None) -> Path:
         """Execute command with Codex CLI."""
         if not check_tool("codex"):
             raise RuntimeError("Codex CLI is not installed. Install from: https://github.com/openai/codex")
 
         # Similar to Claude, but with codex CLI syntax
         slash_command = f"/speckit.{command}"
+
+        # Add template content if provided
+        if template_content:
+            slash_command += f"\n\nTemplate:\n{template_content}"
+
         if prompt:
-            slash_command += f" {prompt}"
+            slash_command += f"\n\n{prompt}"
 
         try:
             original_dir = Path.cwd()
@@ -2187,14 +2330,19 @@ class AgentExecutor:
             console.print(f"[red]Error executing Codex:[/red] {e}")
             raise RuntimeError(f"Codex execution failed: {e}")
 
-    def _execute_gemini(self, command: str, prompt: str = "") -> Path:
+    def _execute_gemini(self, command: str, prompt: str = "", template_content: Optional[str] = None) -> Path:
         """Execute command with Gemini CLI."""
         if not check_tool("gemini"):
             raise RuntimeError("Gemini CLI is not installed. Install from: https://github.com/google-gemini/gemini-cli")
 
         slash_command = f"/speckit.{command}"
+
+        # Add template content if provided
+        if template_content:
+            slash_command += f"\n\nTemplate:\n{template_content}"
+
         if prompt:
-            slash_command += f" {prompt}"
+            slash_command += f"\n\n{prompt}"
 
         try:
             original_dir = Path.cwd()
@@ -2220,7 +2368,7 @@ class AgentExecutor:
             console.print(f"[red]Error executing Gemini CLI:[/red] {e}")
             raise RuntimeError(f"Gemini CLI execution failed: {e}")
 
-    def _execute_generic(self, command: str, _prompt: str = "") -> Path:
+    def _execute_generic(self, command: str, _prompt: str = "", _template_content: Optional[str] = None) -> Path:
         """Generic execution for other agents (placeholder)."""
         console.print(f"[yellow]Warning:[/yellow] Generic execution for {self.agent} not fully implemented")
         console.print(f"[yellow]Please manually run:[/yellow] /speckit.{command}")
@@ -2258,6 +2406,9 @@ def constitution(
     if project_dir is None:
         project_dir = Path.cwd()
 
+    # Load template if enabled
+    template_content = load_template_if_enabled("constitution", project_dir)
+
     if ai:
         # Single agent execution
         console.print(f"[cyan]Creating constitution with {AGENT_CONFIG[ai]['name']}...[/cyan]")
@@ -2267,7 +2418,7 @@ def constitution(
 
         # Execute agent with constitution command
         executor = AgentExecutor(ai, project_dir)
-        output_path = executor.execute("constitution")
+        output_path = executor.execute("constitution", template_content=template_content)
 
         console.print("[green]✓[/green] Constitution created successfully")
         console.print(f"[dim]Output: {output_path}[/dim]")
@@ -2278,7 +2429,7 @@ def constitution(
         # Execute with selected agent
         ensure_agent_installed(selected_agent, project_dir)
         executor = AgentExecutor(selected_agent, project_dir)
-        output_path = executor.execute("constitution")
+        output_path = executor.execute("constitution", template_content=template_content)
 
         console.print("[green]✓[/green] Constitution created successfully")
         console.print(f"[dim]Output: {output_path}[/dim]")
@@ -2299,6 +2450,9 @@ def specify(
     if project_dir is None:
         project_dir = Path.cwd()
 
+    # Load template if enabled
+    template_content = load_template_if_enabled("specify", project_dir)
+
     if ai:
         # Single agent execution
         console.print(f"[cyan]Creating specification with {AGENT_CONFIG[ai]['name']}...[/cyan]")
@@ -2308,7 +2462,7 @@ def specify(
 
         # Execute agent with specify command
         executor = AgentExecutor(ai, project_dir)
-        output_path = executor.execute("specify", prompt or "")
+        output_path = executor.execute("specify", prompt or "", template_content=template_content)
 
         console.print("[green]✓[/green] Specification created successfully")
         console.print(f"[dim]Output: {output_path}[/dim]")
@@ -2319,7 +2473,7 @@ def specify(
         # Execute with selected agent
         ensure_agent_installed(selected_agent, project_dir)
         executor = AgentExecutor(selected_agent, project_dir)
-        output_path = executor.execute("specify", prompt or "")
+        output_path = executor.execute("specify", prompt or "", template_content=template_content)
 
         console.print("[green]✓[/green] Specification created successfully")
         console.print(f"[dim]Output: {output_path}[/dim]")
@@ -2339,6 +2493,9 @@ def plan(
     if project_dir is None:
         project_dir = Path.cwd()
 
+    # Load template if enabled
+    template_content = load_template_if_enabled("plan", project_dir)
+
     if ai:
         # Single agent execution
         console.print(f"[cyan]Creating implementation plan with {AGENT_CONFIG[ai]['name']}...[/cyan]")
@@ -2348,7 +2505,7 @@ def plan(
 
         # Execute agent with plan command
         executor = AgentExecutor(ai, project_dir)
-        output_path = executor.execute("plan")
+        output_path = executor.execute("plan", template_content=template_content)
 
         console.print("[green]✓[/green] Implementation plan created successfully")
         console.print(f"[dim]Output: {output_path}[/dim]")
@@ -2359,7 +2516,7 @@ def plan(
         # Execute with selected agent
         ensure_agent_installed(selected_agent, project_dir)
         executor = AgentExecutor(selected_agent, project_dir)
-        output_path = executor.execute("plan")
+        output_path = executor.execute("plan", template_content=template_content)
 
         console.print("[green]✓[/green] Implementation plan created successfully")
         console.print(f"[dim]Output: {output_path}[/dim]")
@@ -2379,6 +2536,9 @@ def tasks(
     if project_dir is None:
         project_dir = Path.cwd()
 
+    # Load template if enabled
+    template_content = load_template_if_enabled("tasks", project_dir)
+
     if ai:
         # Single agent execution
         console.print(f"[cyan]Breaking down into tasks with {AGENT_CONFIG[ai]['name']}...[/cyan]")
@@ -2388,7 +2548,7 @@ def tasks(
 
         # Execute agent with tasks command
         executor = AgentExecutor(ai, project_dir)
-        output_path = executor.execute("tasks")
+        output_path = executor.execute("tasks", template_content=template_content)
 
         console.print("[green]✓[/green] Task breakdown created successfully")
         console.print(f"[dim]Output: {output_path}[/dim]")
@@ -2399,7 +2559,7 @@ def tasks(
         # Execute with selected agent
         ensure_agent_installed(selected_agent, project_dir)
         executor = AgentExecutor(selected_agent, project_dir)
-        output_path = executor.execute("tasks")
+        output_path = executor.execute("tasks", template_content=template_content)
 
         console.print("[green]✓[/green] Task breakdown created successfully")
         console.print(f"[dim]Output: {output_path}[/dim]")
@@ -2459,6 +2619,84 @@ def implement(
 
         console.print("[green]✓[/green] Implementation completed successfully")
         console.print(f"[dim]Output: {output_path}[/dim]")
+
+@app.command()
+def workflow(
+    prompt: str = typer.Argument(..., help="Feature description"),
+    ai: str = typer.Option(None, "--ai", help="AI agent to use for all steps"),
+    project_dir: Path = typer.Option(None, "--dir", help="Project directory"),
+):
+    """
+    Execute complete SDD workflow: constitution → specify → plan → tasks → implement
+
+    Examples:
+        specify-ex workflow "Add user authentication" --ai claude
+        specify-ex workflow "Add dark mode"
+    """
+    if project_dir is None:
+        project_dir = Path.cwd()
+
+    # Select agent
+    if ai:
+        selected_agent = ai
+    else:
+        selected_agent = select_agent_interactive()
+
+    ensure_agent_installed(selected_agent, project_dir)
+
+    console.print(Panel(
+        f"[bold cyan]Starting SDD Workflow[/bold cyan]\n\n"
+        f"Feature: {prompt}\n"
+        f"Agent: {AGENT_CONFIG[selected_agent]['name']}\n"
+        f"Project: {project_dir}",
+        title="Workflow Execution",
+        border_style="cyan"
+    ))
+
+    # Step 1: Constitution (if not exists)
+    console.print("\n[bold cyan]Step 1: Constitution[/bold cyan]")
+    constitution_path = project_dir / ".claude" / "rules" / "constitution.md"
+    if not constitution_path.exists():
+        console.print("[cyan]Creating constitution...[/cyan]")
+        template_content = load_template_if_enabled("constitution", project_dir)
+        executor = AgentExecutor(selected_agent, project_dir)
+        executor.execute("constitution", template_content=template_content)
+        console.print("[green]✓[/green] Constitution created")
+    else:
+        console.print("[dim]Constitution already exists, skipping...[/dim]")
+
+    # Step 2: Specify
+    console.print("\n[bold cyan]Step 2: Specification[/bold cyan]")
+    template_content = load_template_if_enabled("specify", project_dir)
+    executor = AgentExecutor(selected_agent, project_dir)
+    executor.execute("specify", prompt, template_content=template_content)
+    console.print("[green]✓[/green] Specification created")
+
+    # Step 3: Plan
+    console.print("\n[bold cyan]Step 3: Implementation Plan[/bold cyan]")
+    template_content = load_template_if_enabled("plan", project_dir)
+    executor.execute("plan", template_content=template_content)
+    console.print("[green]✓[/green] Plan created")
+
+    # Step 4: Tasks
+    console.print("\n[bold cyan]Step 4: Task Breakdown[/bold cyan]")
+    template_content = load_template_if_enabled("tasks", project_dir)
+    executor.execute("tasks", template_content=template_content)
+    console.print("[green]✓[/green] Tasks created")
+
+    # Step 5: Implement
+    console.print("\n[bold cyan]Step 5: Implementation[/bold cyan]")
+    executor.execute("implement")
+
+    # Record implementation changes
+    console.print("\n[cyan]Recording implementation changes...[/cyan]")
+    updated_count = record_implementation_changes(project_dir)
+    if updated_count > 0:
+        console.print(f"[green]✓[/green] Updated {updated_count} documentation file(s)")
+    else:
+        console.print("[dim]No documentation updates needed[/dim]")
+
+    console.print("\n[bold green]✓ Workflow completed successfully![/bold green]")
 
 # =============================================================================
 # Phase 4: Document Management (Skeleton Implementation)
