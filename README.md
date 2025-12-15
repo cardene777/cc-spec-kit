@@ -1,6 +1,6 @@
 <div align="center">
     <img src="./media/logo_large.webp" alt="Spec Kit Logo" width="200" height="200"/>
-    <h1>🌱 Spec Kit</h1>
+    <h1>🌱 Spec Kit EX</h1>
     <h3><em>Build high-quality software faster.</em></h3>
 </div>
 
@@ -36,6 +36,18 @@
 - [🙏 Acknowledgements](#-acknowledgements)
 - [📄 License](#-license)
 
+## ✨ What's New in Spec Kit EX
+
+Spec Kit EX extends the original Spec Kit with powerful new capabilities:
+
+- **🌍 Multi-language Support**: Full Japanese and English interface with `--lang` option
+- **📚 Automatic Documentation Sync**: Real-time documentation updates during implementation
+- **🤖 Enhanced Agent Integration**: Optimized workflows for Claude Code, Codex, and Gemini
+- **⚙️ Agent Configuration Management**: Automatic setup of CLAUDE.md and AGENTS.md
+- **📋 Template System**: Language-specific templates with smart loading
+
+All original Spec Kit functionality is preserved - these features build on top of the proven Spec-Driven Development workflow.
+
 ## 🤔 What is Spec-Driven Development?
 
 Spec-Driven Development **flips the script** on traditional software development. For decades, code has been king — specifications were just scaffolding we built and discarded once the "real work" of coding began. Spec-Driven Development changes this: **specifications become executable**, directly generating working implementations rather than just guiding them.
@@ -51,28 +63,28 @@ Choose your preferred installation method:
 Install once and use everywhere:
 
 ```bash
-uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+uv tool install specify-ex-cli --from git+https://github.com/github/spec-kit-ex.git
 ```
 
 Then use the tool directly:
 
 ```bash
 # Create new project
-specify init <PROJECT_NAME>
+specify-ex init <PROJECT_NAME>
 
 # Or initialize in existing project
-specify init . --ai claude
+specify-ex init . --ai claude
 # or
-specify init --here --ai claude
+specify-ex init --here --ai claude
 
 # Check installed tools
-specify check
+specify-ex check
 ```
 
 To upgrade Specify, see the [Upgrade Guide](./docs/upgrade.md) for detailed instructions. Quick upgrade:
 
 ```bash
-uv tool install specify-cli --force --from git+https://github.com/github/spec-kit.git
+uv tool install specify-ex-cli --force --from git+https://github.com/github/spec-kit-ex.git
 ```
 
 #### Option 2: One-time Usage
@@ -80,7 +92,7 @@ uv tool install specify-cli --force --from git+https://github.com/github/spec-ki
 Run directly without installing:
 
 ```bash
-uvx --from git+https://github.com/github/spec-kit.git specify init <PROJECT_NAME>
+uvx --from git+https://github.com/github/spec-kit-ex.git specify-ex init <PROJECT_NAME>
 ```
 
 **Benefits of persistent installation:**
@@ -165,7 +177,7 @@ Want to see Spec Kit in action? Watch our [video overview](https://www.youtube.c
 
 ## 🔧 Specify CLI Reference
 
-The `specify` command supports the following options:
+The `specify-ex` command supports the following options:
 
 ### Commands
 
@@ -174,12 +186,13 @@ The `specify` command supports the following options:
 | `init`  | Initialize a new Specify project from the latest template                                                                                               |
 | `check` | Check for installed tools (`git`, `claude`, `gemini`, `code`/`code-insiders`, `cursor-agent`, `windsurf`, `qwen`, `opencode`, `codex`, `shai`, `qoder`) |
 
-### `specify init` Arguments & Options
+### `specify-ex init` Arguments & Options
 
 | Argument/Option        | Type     | Description                                                                                                                                                                                  |
 | ---------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `<project-name>`       | Argument | Name for your new project directory (optional if using `--here`, or use `.` for current directory)                                                                                           |
 | `--ai`                 | Option   | AI assistant to use: `claude`, `gemini`, `copilot`, `cursor-agent`, `qwen`, `opencode`, `codex`, `windsurf`, `kilocode`, `auggie`, `roo`, `codebuddy`, `amp`, `shai`, `q`, `bob`, or `qoder` |
+| `--lang`               | Option   | Language for interface and templates: `ja` (Japanese) or `en` (English). Defaults to English if not specified.                                                                               |
 | `--script`             | Option   | Script variant to use: `sh` (bash/zsh) or `ps` (PowerShell)                                                                                                                                  |
 | `--ignore-agent-tools` | Flag     | Skip checks for AI agent tools like Claude Code                                                                                                                                              |
 | `--no-git`             | Flag     | Skip git repository initialization                                                                                                                                                           |
@@ -193,58 +206,64 @@ The `specify` command supports the following options:
 
 ```bash
 # Basic project initialization
-specify init my-project
+specify-ex init my-project
 
 # Initialize with specific AI assistant
-specify init my-project --ai claude
+specify-ex init my-project --ai claude
+
+# Initialize with Japanese language support
+specify-ex init my-project --ai claude --lang ja
+
+# Initialize with English language (default)
+specify-ex init my-project --ai claude --lang en
 
 # Initialize with Cursor support
-specify init my-project --ai cursor-agent
+specify-ex init my-project --ai cursor-agent
 
 # Initialize with Qoder support
-specify init my-project --ai qoder
+specify-ex init my-project --ai qoder
 
 # Initialize with Windsurf support
-specify init my-project --ai windsurf
+specify-ex init my-project --ai windsurf
 
 # Initialize with Amp support
-specify init my-project --ai amp
+specify-ex init my-project --ai amp
 
 # Initialize with SHAI support
-specify init my-project --ai shai
+specify-ex init my-project --ai shai
 
 # Initialize with IBM Bob support
-specify init my-project --ai bob
+specify-ex init my-project --ai bob
 
 # Initialize with PowerShell scripts (Windows/cross-platform)
-specify init my-project --ai copilot --script ps
+specify-ex init my-project --ai copilot --script ps
 
 # Initialize in current directory
-specify init . --ai copilot
+specify-ex init . --ai copilot
 # or use the --here flag
-specify init --here --ai copilot
+specify-ex init --here --ai copilot
 
 # Force merge into current (non-empty) directory without confirmation
-specify init . --force --ai copilot
+specify-ex init . --force --ai copilot
 # or
-specify init --here --force --ai copilot
+specify-ex init --here --force --ai copilot
 
 # Skip git initialization
-specify init my-project --ai gemini --no-git
+specify-ex init my-project --ai gemini --no-git
 
 # Enable debug output for troubleshooting
-specify init my-project --ai claude --debug
+specify-ex init my-project --ai claude --debug
 
 # Use GitHub token for API requests (helpful for corporate environments)
-specify init my-project --ai claude --github-token ghp_your_token_here
+specify-ex init my-project --ai claude --github-token ghp_your_token_here
 
 # Check system requirements
-specify check
+specify-ex check
 ```
 
 ### Available Slash Commands
 
-After running `specify init`, your AI coding agent will have access to these slash commands for structured development:
+After running `specify-ex init`, your AI coding agent will have access to these slash commands for structured development:
 
 #### Core Commands
 
@@ -339,22 +358,22 @@ If you encounter issues with an agent, please open an issue so we can refine the
 <details>
 <summary>Click to expand the detailed step-by-step walkthrough</summary>
 
-You can use the Specify CLI to bootstrap your project, which will bring in the required artifacts in your environment. Run:
+You can use the Specify EX CLI to bootstrap your project, which will bring in the required artifacts in your environment. Run:
 
 ```bash
-specify init <project_name>
+specify-ex init <project_name>
 ```
 
 Or initialize in the current directory:
 
 ```bash
-specify init .
+specify-ex init .
 # or use the --here flag
-specify init --here
+specify-ex init --here
 # Skip confirmation when the directory already has files
-specify init . --force
+specify-ex init . --force
 # or
-specify init --here --force
+specify-ex init --here --force
 ```
 
 ![Specify CLI bootstrapping a new project in the terminal](./media/specify_cli.gif)
@@ -362,29 +381,33 @@ specify init --here --force
 You will be prompted to select the AI agent you are using. You can also proactively specify it directly in the terminal:
 
 ```bash
-specify init <project_name> --ai claude
-specify init <project_name> --ai gemini
-specify init <project_name> --ai copilot
+specify-ex init <project_name> --ai claude
+specify-ex init <project_name> --ai gemini
+specify-ex init <project_name> --ai copilot
+
+# With language selection
+specify-ex init <project_name> --ai claude --lang ja
+specify-ex init <project_name> --ai claude --lang en
 
 # Or in current directory:
-specify init . --ai claude
-specify init . --ai codex
+specify-ex init . --ai claude
+specify-ex init . --ai codex
 
 # or use --here flag
-specify init --here --ai claude
-specify init --here --ai codex
+specify-ex init --here --ai claude
+specify-ex init --here --ai codex
 
 # Force merge into a non-empty current directory
-specify init . --force --ai claude
+specify-ex init . --force --ai claude
 
 # or
-specify init --here --force --ai claude
+specify-ex init --here --force --ai claude
 ```
 
 The CLI will check if you have Claude Code, Gemini CLI, Cursor CLI, Qwen CLI, opencode, Codex CLI, Qoder CLI, or Amazon Q Developer CLI installed. If you do not, or you prefer to get the templates without checking for the right tools, use `--ignore-agent-tools` with your command:
 
 ```bash
-specify init <project_name> --ai claude --ignore-agent-tools
+specify-ex init <project_name> --ai claude --ignore-agent-tools
 ```
 
 ### **STEP 1:** Establish project principles

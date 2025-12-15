@@ -2178,6 +2178,7 @@ def record_implementation_changes(project_dir: Path) -> int:
 
     count = 0
     timestamp = datetime.now()
+    today_str = timestamp.strftime("%Y-%m-%d")
 
     for file_str in changed_files:
         file_path = Path(file_str)
@@ -2185,7 +2186,14 @@ def record_implementation_changes(project_dir: Path) -> int:
         # Find corresponding documentation file
         doc_file = find_doc_file(file_path, docs_dir)
         if doc_file:
-            # Append change history
+            # Check if documentation already has today's update
+            if doc_file.exists():
+                content = doc_file.read_text(encoding="utf-8")
+                if f"### {today_str}:" in content:
+                    # Already updated today, skip
+                    continue
+
+            # Append change history only if not updated today
             message = f"Updated {file_path.name}"
             append_change_history(doc_file, message, timestamp)
             count += 1
@@ -2258,6 +2266,29 @@ class AgentExecutor:
         if prompt:
             slash_command += f"\n\n{prompt}"
 
+        # Add async subagent for implement command
+        if command == "implement":
+            slash_command += """
+
+Spawn async subagent to monitor file changes and update documentation:
+
+Your task is to run in the background and monitor for file changes during implementation. When you detect changes:
+
+1. **For new files**:
+   - Generate documentation in `.specify/docs/` following the project structure
+   - Use the same format as existing docs (Purpose, Key Functions/Classes, Dependencies, Change History)
+   - Place docs in the correct subdirectory mirroring source structure
+
+2. **For modified files**:
+   - Append change history entry with timestamp and description
+   - Update the file documentation if significant changes occurred
+
+3. **For deleted files**:
+   - Append deletion note to the corresponding documentation
+
+Continue monitoring until the main implementation task completes, then notify completion.
+"""
+
         # Execute Claude Code
         try:
             # Change to project directory
@@ -2306,6 +2337,22 @@ class AgentExecutor:
         if prompt:
             slash_command += f"\n\n{prompt}"
 
+        # Add task-based documentation update instruction for implement command
+        if command == "implement":
+            slash_command += """
+
+IMPORTANT - Documentation Update:
+
+After completing each task, update the documentation:
+
+1. List files you changed
+2. Update corresponding documentation in `.specify/docs/`:
+   - New files: Create new documentation
+   - Modified files: Append change entry to Change History section
+   - Deleted files: Add deletion note to documentation
+3. Proceed to next task
+"""
+
         try:
             original_dir = Path.cwd()
             os.chdir(self.project_dir)
@@ -2343,6 +2390,22 @@ class AgentExecutor:
 
         if prompt:
             slash_command += f"\n\n{prompt}"
+
+        # Add task-based documentation update instruction for implement command
+        if command == "implement":
+            slash_command += """
+
+IMPORTANT - Documentation Update:
+
+After completing each task, update the documentation:
+
+1. List files you changed
+2. Update corresponding documentation in `.specify/docs/`:
+   - New files: Create new documentation
+   - Modified files: Append change entry to Change History section
+   - Deleted files: Add deletion note to documentation
+3. Proceed to next task
+"""
 
         try:
             original_dir = Path.cwd()
@@ -2579,6 +2642,23 @@ def implement(
     if project_dir is None:
         project_dir = Path.cwd()
 
+    # Check if .specify/docs/ exists, if not, run sync automatically
+    docs_dir = project_dir / ".specify" / "docs"
+    if not docs_dir.exists():
+        console.print("[yellow]Note:[/yellow] `.specify/docs/` not found. Running initial sync...")
+        try:
+            # Detect source directory
+            source_dir = detect_source_directory(project_dir)
+            if source_dir:
+                # Generate base documentation
+                count = sync_directory_docs(source_dir, docs_dir, auto=True)
+                console.print(f"[green]✓[/green] Generated {count} documentation file(s)")
+            else:
+                console.print("[yellow]Warning:[/yellow] Could not detect source directory. Skipping sync.")
+        except Exception as e:
+            console.print(f"[yellow]Warning:[/yellow] Auto-sync failed: {e}")
+            console.print("[dim]Continuing with implementation...[/dim]")
+
     if ai:
         # Single agent execution
         console.print(f"[cyan]Executing implementation with {AGENT_CONFIG[ai]['name']}...[/cyan]")
@@ -2586,17 +2666,22 @@ def implement(
         # Check if agent is installed, if not, auto-install
         ensure_agent_installed(ai, project_dir)
 
+        # Claude Code: async subagent will handle doc updates automatically
+        if ai == "claude":
+            console.print("[dim]Note: Documentation will be updated automatically during implementation[/dim]")
+
         # Execute agent with implement command
         executor = AgentExecutor(ai, project_dir)
         output_path = executor.execute("implement")
 
-        # Record implementation changes to documentation
-        console.print("\n[cyan]Recording implementation changes...[/cyan]")
-        updated_count = record_implementation_changes(project_dir)
-        if updated_count > 0:
-            console.print(f"[green]✓[/green] Updated {updated_count} documentation file(s)")
-        else:
-            console.print("[dim]No documentation updates needed[/dim]")
+        # Non-Claude agents: fallback to batch update
+        if ai != "claude":
+            console.print("\n[cyan]Recording implementation changes...[/cyan]")
+            updated_count = record_implementation_changes(project_dir)
+            if updated_count > 0:
+                console.print(f"[green]✓[/green] Updated {updated_count} documentation file(s)")
+            else:
+                console.print("[dim]No documentation updates needed[/dim]")
 
         console.print("[green]✓[/green] Implementation completed successfully")
         console.print(f"[dim]Output: {output_path}[/dim]")
@@ -2606,16 +2691,22 @@ def implement(
 
         # Execute with selected agent
         ensure_agent_installed(selected_agent, project_dir)
+
+        # Claude Code: async subagent will handle doc updates automatically
+        if selected_agent == "claude":
+            console.print("[dim]Note: Documentation will be updated automatically during implementation[/dim]")
+
         executor = AgentExecutor(selected_agent, project_dir)
         output_path = executor.execute("implement")
 
-        # Record implementation changes to documentation
-        console.print("\n[cyan]Recording implementation changes...[/cyan]")
-        updated_count = record_implementation_changes(project_dir)
-        if updated_count > 0:
-            console.print(f"[green]✓[/green] Updated {updated_count} documentation file(s)")
-        else:
-            console.print("[dim]No documentation updates needed[/dim]")
+        # Non-Claude agents: fallback to batch update
+        if selected_agent != "claude":
+            console.print("\n[cyan]Recording implementation changes...[/cyan]")
+            updated_count = record_implementation_changes(project_dir)
+            if updated_count > 0:
+                console.print(f"[green]✓[/green] Updated {updated_count} documentation file(s)")
+            else:
+                console.print("[dim]No documentation updates needed[/dim]")
 
         console.print("[green]✓[/green] Implementation completed successfully")
         console.print(f"[dim]Output: {output_path}[/dim]")
