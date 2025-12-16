@@ -144,6 +144,29 @@ def get_project_language(project_dir: Path) -> str:
     config = load_project_config(project_dir)
     return config.get("language", "en")
 
+def is_claude_code_environment(ai_param: str = None) -> bool:
+    """
+    Detect Claude Code environment.
+
+    Detection method:
+    1. Check --ai parameter (if ai_param is None or "claude" → Claude Code)
+    2. (Optional) Check CLAUDE_CODE_VERSION environment variable
+
+    Args:
+        ai_param: AI agent parameter from command line
+
+    Returns:
+        True if Claude Code environment detected, False otherwise
+    """
+    # --ai parameter check
+    if ai_param is None or ai_param == "claude":
+        return True
+
+    # Environment variable check (optional)
+    has_env_var = os.getenv("CLAUDE_CODE_VERSION") is not None
+
+    return has_env_var
+
 # =============================================================================
 # Template Loading
 # =============================================================================
@@ -342,12 +365,12 @@ def install_agent_config(ai: str, project_dir: Path) -> None:
     templates_root = get_templates_root()
     agent_config = AGENT_CONFIG[ai]
 
-    # Determine source template
+    # Determine source template (new paths)
     if ai == "claude":
-        source_file = templates_root / "agent-configs" / "CLAUDE.md"
+        source_file = templates_root / "agents" / "claude" / "CLAUDE.md"
         dest_file = project_dir / agent_config["folder"] / "CLAUDE.md"
     else:
-        source_file = templates_root / "agent-configs" / "AGENTS.md"
+        source_file = templates_root / "agents" / "AGENTS.md"
         dest_file = project_dir / agent_config["folder"] / "AGENTS.md"
 
     if not source_file.exists():
@@ -356,6 +379,87 @@ def install_agent_config(ai: str, project_dir: Path) -> None:
     # Copy to destination
     dest_file.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source_file, dest_file)
+
+def install_claude_code_templates(project_dir: Path) -> None:
+    """Install Claude Code templates (commands, skills, agents) to .claude/ directory
+
+    This copies templates from templates/agents/claude/ to user project's .claude/ directory.
+
+    Directory structure created:
+        project-root/
+        ├── CLAUDE.md          # Agent configuration (copied to project root)
+        └── .claude/
+            ├── commands/          # Slash Command templates (no .md extension)
+            │   ├── constitution
+            │   ├── specify
+            │   ├── design
+            │   ├── plan
+            │   ├── tasks
+            │   ├── sync
+            │   └── implement
+            ├── skills/            # Skill templates (English)
+            │   ├── constitution-knowledge/
+            │   │   └── SKILL.md
+            │   ├── specify-knowledge/
+            │   │   └── SKILL.md
+            │   ├── design-creator/
+            │   │   └── SKILL.md
+            │   ├── plan-knowledge/
+            │   │   └── SKILL.md
+            │   ├── tasks-knowledge/
+            │   │   └── SKILL.md
+            │   ├── sync-knowledge/
+            │   │   └── SKILL.md
+            │   ├── implement-knowledge/
+            │   │   └── SKILL.md
+            │   └── load-project-context/
+            │       └── SKILL.md
+            └── agents/            # Subagent templates
+                └── executor.md
+
+    Args:
+        project_dir: Project root directory
+    """
+    templates_root = get_templates_root()
+    claude_templates = templates_root / "agents" / "claude"
+
+    if not claude_templates.exists():
+        console.print(f"[yellow]Warning:[/yellow] Claude Code templates not found at {claude_templates}")
+        return
+
+    claude_dir = project_dir / ".claude"
+    claude_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. Copy CLAUDE.md to project root
+    claude_md_src = claude_templates / "CLAUDE.md"
+    if claude_md_src.exists():
+        shutil.copy2(claude_md_src, project_dir / "CLAUDE.md")
+
+    # 2. Copy Slash Commands (remove .md extension for Claude Code compatibility)
+    # Commands are shared across all agents in templates/agents/commands/
+    commands_src = templates_root / "agents" / "commands"
+    commands_dest = claude_dir / "commands"
+    if commands_src.exists():
+        commands_dest.mkdir(parents=True, exist_ok=True)
+        for cmd_file in commands_src.iterdir():
+            if cmd_file.is_file() and cmd_file.suffix == ".md":
+                # Remove .md extension: "constitution.md" → "constitution"
+                dest_name = cmd_file.stem
+                shutil.copy2(cmd_file, commands_dest / dest_name)
+
+    # 3. Copy Subagents
+    agents_src = claude_templates / "agents"
+    agents_dest = claude_dir / "agents"
+    if agents_src.exists():
+        agents_dest.mkdir(parents=True, exist_ok=True)
+        for agent_file in agents_src.iterdir():
+            if agent_file.is_file():
+                shutil.copy2(agent_file, agents_dest / agent_file.name)
+
+    console.print(f"[green]✓[/green] Claude Code templates installed to {claude_dir}")
+    console.print(f"[dim]  - CLAUDE.md: copied to project root[/dim]")
+    console.print(f"[dim]  - Commands: {len(list((commands_dest).iterdir()) if commands_dest.exists() else [])} files[/dim]")
+    console.print(f"[dim]  - Agents: {len(list((agents_dest).iterdir()) if agents_dest.exists() else [])} files[/dim]")
 
 def ensure_agent_installed(agent: str, project_dir: Path) -> None:
     """
@@ -1672,6 +1776,10 @@ def init(
     # Install agent configuration file
     install_agent_config(selected_ai, project_path)
 
+    # Install Claude Code templates if Claude is selected
+    if selected_ai == "claude":
+        install_claude_code_templates(project_path)
+
     # Show git error details if initialization failed
     if git_error_message:
         console.print()
@@ -2469,6 +2577,13 @@ def constitution(
     if project_dir is None:
         project_dir = Path.cwd()
 
+    # Claude Code environment detection
+    if is_claude_code_environment(ai):
+        console.print("[cyan]Claude Code detected[/cyan]")
+        console.print("[yellow]Execute: /speckit.constitution[/yellow]")
+        console.print("[dim]This will use the constitution-knowledge skill[/dim]")
+        return
+
     # Load template if enabled
     template_content = load_template_if_enabled("constitution", project_dir)
 
@@ -2512,6 +2627,13 @@ def specify(
     """
     if project_dir is None:
         project_dir = Path.cwd()
+
+    # Claude Code environment detection
+    if is_claude_code_environment(ai):
+        console.print("[cyan]Claude Code detected[/cyan]")
+        console.print("[yellow]Execute: /speckit.specify[/yellow]")
+        console.print("[dim]This will use the specify-knowledge skill[/dim]")
+        return
 
     # Load template if enabled
     template_content = load_template_if_enabled("specify", project_dir)
@@ -2557,6 +2679,13 @@ def design(
     """
     if project_dir is None:
         project_dir = Path.cwd()
+
+    # Claude Code environment detection
+    if is_claude_code_environment(ai):
+        console.print("[cyan]Claude Code detected[/cyan]")
+        console.print("[yellow]Execute: /speckit.design[/yellow]")
+        console.print("[dim]This will use the design-creator skill[/dim]")
+        return
 
     # Load template if enabled
     template_content = load_template_if_enabled("design", project_dir)
@@ -2612,6 +2741,13 @@ def plan(
     if project_dir is None:
         project_dir = Path.cwd()
 
+    # Claude Code environment detection
+    if is_claude_code_environment(ai):
+        console.print("[cyan]Claude Code detected[/cyan]")
+        console.print("[yellow]Execute: /speckit.plan[/yellow]")
+        console.print("[dim]This will use the plan-knowledge skill[/dim]")
+        return
+
     # Load template if enabled
     template_content = load_template_if_enabled("plan", project_dir)
 
@@ -2655,6 +2791,13 @@ def tasks(
     if project_dir is None:
         project_dir = Path.cwd()
 
+    # Claude Code environment detection
+    if is_claude_code_environment(ai):
+        console.print("[cyan]Claude Code detected[/cyan]")
+        console.print("[yellow]Execute: /speckit.tasks[/yellow]")
+        console.print("[dim]This will use the tasks-knowledge skill[/dim]")
+        return
+
     # Load template if enabled
     template_content = load_template_if_enabled("tasks", project_dir)
 
@@ -2697,6 +2840,13 @@ def implement(
     """
     if project_dir is None:
         project_dir = Path.cwd()
+
+    # Claude Code environment detection
+    if is_claude_code_environment(ai):
+        console.print("[cyan]Claude Code detected[/cyan]")
+        console.print("[yellow]Execute: /speckit.implement[/yellow]")
+        console.print("[dim]This will use the executor subagent for implementation[/dim]")
+        return
 
     # Check if .specify/docs/ exists, if not, run sync automatically
     docs_dir = project_dir / ".specify" / "docs"
@@ -2874,6 +3024,13 @@ def sync(
     """
     if project_dir is None:
         project_dir = Path.cwd()
+
+    # Claude Code environment detection (environment variable only, no --ai parameter)
+    if os.getenv("CLAUDE_CODE_VERSION") is not None:
+        console.print("[cyan]Claude Code detected[/cyan]")
+        console.print("[yellow]Execute: /speckit.sync[/yellow]")
+        console.print("[dim]This will use the sync-knowledge skill[/dim]")
+        return
 
     console.print("[cyan]Syncing project documentation...[/cyan]\n")
 

@@ -30,16 +30,40 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 2. **Load context**: Read FEATURE_SPEC and `/memory/constitution.md`. Load IMPL_PLAN template (already copied).
 
-3. **Execute plan workflow**: Follow the structure in IMPL_PLAN template to:
+3. **Load design specifications (if available)**:
+   - Check for `.specify/design/` directory
+   - If exists, read design specifications:
+     - `.specify/design/README.md` (design overview)
+     - `.specify/design/design-system.md` (colors, typography, spacing)
+     - `.specify/design/components/` (component specs and code)
+     - `.specify/design/layouts/` (layout specs and code)
+   - Extract design constraints:
+     - Required UI framework (React, Vue, Angular, etc.)
+     - CSS methodology (Tailwind, CSS Modules, CSS-in-JS, etc.)
+     - Design tokens (color palette, typography scale, spacing)
+     - Component architecture patterns
+     - Responsive breakpoints
+     - Accessibility requirements
+   - If design directory doesn't exist, note: "No design specifications found. Plan will focus on backend/logic only."
+
+4. **Execute plan workflow**: Follow the structure in IMPL_PLAN template to:
    - Fill Technical Context (mark unknowns as "NEEDS CLARIFICATION")
+   - **Integrate design constraints** into Technical Context:
+     - UI framework choice (from design specs)
+     - Styling approach (from design specs)
+     - Component structure (from design specs)
    - Fill Constitution Check section from constitution
    - Evaluate gates (ERROR if violations unjustified)
-   - Phase 0: Generate research.md (resolve all NEEDS CLARIFICATION)
+   - Phase 0: Generate research.md (resolve all NEEDS CLARIFICATION, include design-related research if needed)
    - Phase 1: Generate data-model.md, contracts/, quickstart.md
+   - Phase 1: **Include design implementation guidance**:
+     - Map design components to technical implementation
+     - Specify how to integrate design system tokens
+     - Document component implementation order
    - Phase 1: Update agent context by running the agent script
    - Re-evaluate Constitution Check post-design
 
-4. **Stop and report**: Command ends after Phase 2 planning. Report branch, IMPL_PLAN path, and generated artifacts.
+5. **Stop and report**: Command ends after Phase 2 planning. Report branch, IMPL_PLAN path, and generated artifacts.
 
 ## Phases
 
