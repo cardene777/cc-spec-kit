@@ -2542,6 +2542,62 @@ def specify(
         console.print(f"[dim]Output: {output_path}[/dim]")
 
 @app.command()
+def design(
+    ai: str = typer.Option(None, "--ai", help="AI agent to use"),
+    project_dir: Path = typer.Option(None, "--dir", help="Project directory (default: current)"),
+):
+    """
+    Create UI/UX design skill using design files or requirements.
+
+    This step is executed between 'specify' and 'plan'.
+
+    Examples:
+        specify-ex design --ai claude
+        specify-ex design
+    """
+    if project_dir is None:
+        project_dir = Path.cwd()
+
+    # Load template if enabled
+    template_content = load_template_if_enabled("design", project_dir)
+
+    # Check for design files
+    design_dir = project_dir / ".specify" / "design"
+    has_design_files = design_dir.exists() and any(design_dir.rglob("*"))
+
+    if has_design_files:
+        console.print("[cyan]Design files found in .specify/design/[/cyan]")
+        console.print("[dim]These files will be analyzed to create design-creator skill[/dim]")
+    else:
+        console.print("[yellow]No design files found in .specify/design/[/yellow]")
+        console.print("[dim]Design-creator skill will be generated from requirements[/dim]")
+
+    if ai:
+        # Single agent execution
+        console.print(f"[cyan]Creating design-creator skill with {AGENT_CONFIG[ai]['name']}...[/cyan]")
+
+        # Check if agent is installed, if not, auto-install
+        ensure_agent_installed(ai, project_dir)
+
+        # Execute design command
+        executor = AgentExecutor(ai, project_dir)
+        output_path = executor.execute("design", template_content=template_content)
+
+        console.print("[green]✓[/green] Design-creator skill created successfully")
+        console.print(f"[dim]Skill location: .claude/skills/design-creator/[/dim]")
+    else:
+        # Interactive agent selection
+        selected_agent = select_agent_interactive()
+
+        # Execute with selected agent
+        ensure_agent_installed(selected_agent, project_dir)
+        executor = AgentExecutor(selected_agent, project_dir)
+        output_path = executor.execute("design", template_content=template_content)
+
+        console.print("[green]✓[/green] Design-creator skill created successfully")
+        console.print(f"[dim]Skill location: .claude/skills/design-creator/[/dim]")
+
+@app.command()
 def plan(
     ai: str = typer.Option(None, "--ai", help="AI agent to use (single agent)"),
     project_dir: Path = typer.Option(None, "--dir", help="Project directory (default: current)"),
@@ -2718,7 +2774,7 @@ def workflow(
     project_dir: Path = typer.Option(None, "--dir", help="Project directory"),
 ):
     """
-    Execute complete SDD workflow: constitution → specify → plan → tasks → implement
+    Execute complete SDD workflow: constitution → specify → design → plan → tasks → implement
 
     Examples:
         specify-ex workflow "Add user authentication" --ai claude
@@ -2763,20 +2819,26 @@ def workflow(
     executor.execute("specify", prompt, template_content=template_content)
     console.print("[green]✓[/green] Specification created")
 
-    # Step 3: Plan
-    console.print("\n[bold cyan]Step 3: Implementation Plan[/bold cyan]")
+    # Step 3: Design
+    console.print("\n[bold cyan]Step 3: Design[/bold cyan]")
+    template_content = load_template_if_enabled("design", project_dir)
+    executor.execute("design", template_content=template_content)
+    console.print("[green]✓[/green] Design-creator skill created")
+
+    # Step 4: Plan
+    console.print("\n[bold cyan]Step 4: Implementation Plan[/bold cyan]")
     template_content = load_template_if_enabled("plan", project_dir)
     executor.execute("plan", template_content=template_content)
     console.print("[green]✓[/green] Plan created")
 
-    # Step 4: Tasks
-    console.print("\n[bold cyan]Step 4: Task Breakdown[/bold cyan]")
+    # Step 5: Tasks
+    console.print("\n[bold cyan]Step 5: Task Breakdown[/bold cyan]")
     template_content = load_template_if_enabled("tasks", project_dir)
     executor.execute("tasks", template_content=template_content)
     console.print("[green]✓[/green] Tasks created")
 
-    # Step 5: Implement
-    console.print("\n[bold cyan]Step 5: Implementation[/bold cyan]")
+    # Step 6: Implement
+    console.print("\n[bold cyan]Step 6: Implementation[/bold cyan]")
     executor.execute("implement")
 
     # Record implementation changes
