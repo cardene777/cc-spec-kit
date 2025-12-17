@@ -48,17 +48,26 @@ You **MUST** consider the user input before proceeding (if not empty).
      - Display the table showing all checklists passed
      - Automatically proceed to step 3
 
-3. Load and analyze the implementation context:
+3. **Prerequisites Check (TDD Integration)**:
+   - **REQUIRED**: Verify spec.md exists (ERROR if missing: "spec.md not found. Please run /speckit.spec first.")
+   - **REQUIRED**: Verify plan.md exists (ERROR if missing: "plan.md not found. Please run /speckit.plan first.")
+   - **REQUIRED**: Verify tasks.md exists (ERROR if missing: "tasks.md not found. Please run /speckit.tasks first.")
+   - **OPTIONAL**: Check if .specify/design/ exists for UI implementation guidance
+
+4. Load and analyze the implementation context:
    - **REQUIRED**: Read tasks.md for the complete task list and execution plan
    - **REQUIRED**: Read plan.md for tech stack, architecture, and file structure
+   - **REQUIRED**: Read spec.md for feature requirements
    - **IF EXISTS**: Read data-model.md for entities and relationships
    - **IF EXISTS**: Read contracts/ for API specifications and test requirements
    - **IF EXISTS**: Read research.md for technical decisions and constraints
    - **IF EXISTS**: Read quickstart.md for integration scenarios
-   - **IF EXISTS**: If `.claude/skills/design-creator/` exists, use the design-creator skill for UI implementation guidance (design system, components, accessibility)
-   - **IF EXISTS**: If `.specify/design.md` exists, read and follow the design specifications for UI implementation
+   - **IF EXISTS**: If `.specify/design/` exists, read design specifications for UI implementation:
+     - design-system.md (design tokens: colors, typography, spacing)
+     - components/ (component specifications and code)
+     - layouts/ (layout specifications and code)
 
-4. **Project Setup Verification**:
+5. **Project Setup Verification**:
    - **REQUIRED**: Create/verify ignore files based on actual project setup:
 
    **Detection & Creation Logic**:
@@ -102,28 +111,47 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **Terraform**: `.terraform/`, `*.tfstate*`, `*.tfvars`, `.terraform.lock.hcl`
    - **Kubernetes/k8s**: `*.secret.yaml`, `secrets/`, `.kube/`, `kubeconfig*`, `*.key`, `*.crt`
 
-5. Parse tasks.md structure and extract:
+6. Parse tasks.md structure and extract:
    - **Task phases**: Setup, Tests, Core, Integration, Polish
    - **Task dependencies**: Sequential vs parallel execution rules
    - **Task details**: ID, description, file paths, parallel markers [P]
    - **Execution flow**: Order and dependency requirements
 
-6. Execute implementation following the task plan:
+7. **Execute implementation following TDD workflow**:
+
+   **TDD Cycle (Red → Green → Refactor)**:
+   - For each task in tasks.md:
+     1. **Red**: Write a failing test first
+        - Add new test cases for the functionality to be implemented
+        - Run tests and confirm they fail (RED state)
+        - If .specify/design/ exists: Reference design-system.md tokens when writing UI tests
+     2. **Green**: Implement minimal code to pass the test
+        - Write the simplest implementation that makes tests pass
+        - If .specify/design/ exists: Follow component specifications from components/
+        - Run tests and confirm they pass (GREEN state)
+     3. **Refactor**: Clean up code while keeping tests green
+        - Improve code structure, remove duplication
+        - If .specify/design/ exists: Apply design tokens from design-system.md
+        - Keep tests passing throughout refactoring
+     4. **Update task checklist**: Mark TDD checklist items in tasks.md:
+        - [X] Red: Added new tests and confirmed they fail
+        - [X] Green: Implemented minimal code to pass tests
+        - [X] Refactor: Cleaned up code while keeping tests green
+
+   **Execution Rules**:
    - **Phase-by-phase execution**: Complete each phase before moving to the next
-   - **Respect dependencies**: Run sequential tasks in order, parallel tasks [P] can run together  
-   - **Follow TDD approach**: Execute test tasks before their corresponding implementation tasks
+   - **Respect dependencies**: Run sequential tasks in order, parallel tasks [P] can run together
+   - **TDD cycles per task**: You may run multiple Red→Green→Refactor cycles within a single task
+   - **Task completion**: Only mark task as complete after TDD checklist is verified
    - **File-based coordination**: Tasks affecting the same files must run sequentially
    - **Validation checkpoints**: Verify each phase completion before proceeding
 
-7. Implementation execution rules:
-   - **Setup first**: Initialize project structure, dependencies, configuration
-   - **Tests before code**: If you need to write tests for contracts, entities, and integration scenarios
-   - **Core development**: Implement models, services, CLI commands, endpoints
-   - **Integration work**: Database connections, middleware, logging, external services
-   - **Polish and validation**: Unit tests, performance optimization, documentation
-
 8. Progress tracking and error handling:
    - Report progress after each completed task
+   - **TDD Checklist Tracking**: After completing each task:
+     1. Verify all three TDD checklist items are completed
+     2. Update tasks.md to mark checklist items: `- [X]`
+     3. If any checklist item cannot be completed, document the reason
    - Halt execution if any non-parallel task fails
    - For parallel tasks [P], continue with successful tasks, report failed ones
    - Provide clear error messages with context for debugging

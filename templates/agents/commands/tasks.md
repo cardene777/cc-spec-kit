@@ -48,6 +48,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Phase 2: Foundational tasks (blocking prerequisites for all user stories)
    - Phase 3+: One phase per user story (in priority order from spec.md)
    - Each phase includes: story goal, independent test criteria, tests (if requested), implementation tasks
+   - **Each task must include TDD checklist** (see TDD Task Format below)
    - Final Phase: Polish & cross-cutting concerns
    - All tasks must follow the strict checklist format (see Task Generation Rules below)
    - Clear file paths for each task
@@ -138,3 +139,32 @@ Every task MUST strictly follow this format:
   - Within each story: Tests (if requested) → Models → Services → Endpoints → Integration
   - Each phase should be a complete, independently testable increment
 - **Final Phase**: Polish & Cross-Cutting Concerns
+
+### TDD Task Format
+
+**IMPORTANT**: Each task should include a TDD checklist for verification. This checklist is NOT a step-by-step procedure, but a **confirmation checklist** to verify that TDD was properly executed.
+
+**Task Template**:
+
+```markdown
+## Task: [Task Description]
+
+### Related Spec
+- spec/[filename].md#[section]
+
+### TDD Checklist (per task)
+- [ ] Red: Added new tests and confirmed they fail
+- [ ] Green: Implemented minimal code to pass tests
+- [ ] Refactor: Cleaned up code while keeping tests green
+
+### Constraints
+- Do not modify the spec
+- Do not touch other tasks
+```
+
+**Key Points**:
+- The TDD checklist is checked **once per task** upon completion
+- It verifies that the TDD cycle (Red→Green→Refactor) was executed during implementation
+- It is NOT a step-by-step guide, but a post-implementation confirmation
+- If a checklist item cannot be completed, document the reason
+- The checklist confirms observability: "Was TDD actually executed?"
