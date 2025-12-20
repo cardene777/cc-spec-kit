@@ -1,33 +1,46 @@
-# Project Language Configuration
+# Project Rules for Spec-Driven Development
 
-This project uses `.specify/memory/config.json` to manage output language settings.
+## Language Configuration - CRITICAL
 
-## How to Check Language Setting
+**MANDATORY FIRST STEP**: Read `.grove/memory/config.json`
 
-Read `.specify/memory/config.json`:
-```json
-{
-  "language": "ja"
-}
-```
+- `language: "ja"` → **ALL outputs in Japanese ONLY (zero English allowed)**
+- `language: "en"` → **ALL outputs in English ONLY (zero Japanese allowed)**
+- Applies to: responses, questions, AskUserQuestion options, documentation, commit messages, error messages
+- Default to English if config.json missing
 
-## Language Rules
-
-- `language: "ja"` → Output everything in **Japanese**
-- `language: "en"` → Output everything in **English**
-
-## What This Applies To
-
-- All responses and explanations
-- Generated documentation
-- Commit messages
-- Code comments
-- Error messages
-
-## Important
-
-**Always check config.json BEFORE starting work and maintain the specified language throughout the entire task.**
+**VIOLATION = TASK FAILURE**
 
 ## Template Usage
 
-Templates are located in `templates/{language}/` directory. Use them if the YAML frontmatter has `enabled: true`.
+- Check `.grove/templates/*.md` YAML frontmatter for `enabled: true`
+- If enabled: use template content as-is or reference
+- If disabled/missing: use only structure
+
+## Script Placeholder
+
+`{SCRIPT}` → Read YAML frontmatter `scripts:` section, execute `sh:` value (macOS/Linux) or `ps:` value (Windows) from repo root.
+
+Example frontmatter:
+```yaml
+scripts:
+  sh: scripts/bash/my-script.sh --json
+```
+When you see `{SCRIPT}`, execute `scripts/bash/my-script.sh --json`
+
+## Workflow
+
+1. Constitution → 2. Specification → 3. Design (optional) → 4. Planning → 5. Task Breakdown → 6. Implementation (TDD)
+
+## Working Agreements
+
+- Read `.grove/memory/config.json` (language)
+- Read `.grove/memory/constitution.md` (principles)
+- Follow constitution's technical stack
+- Use `.grove/spec.md` as source of truth
+
+## Available Commands
+
+**Claude Code**: `/grove.constitution`, `/grove.specify`, `/grove.clarify`, `/grove.design`, `/grove.plan`, `/grove.tasks`, `/grove.implement`, `/grove.analyze`, `/grove.checklist`, `/grove.taskstoissues`
+
+**Codex**: `/prompts:constitution`, `/prompts:specify`, `/prompts:clarify`, `/prompts:design`, `/prompts:plan`, `/prompts:tasks`, `/prompts:implement`, `/prompts:analyze`, `/prompts:checklist`, `/prompts:taskstoissues`

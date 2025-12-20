@@ -10,7 +10,7 @@
 # ]
 # ///
 """
-Specify EX CLI - Setup tool for Specify EX projects
+Grove CLI - Setup tool for Grove projects
 
 Usage:
     uvx specify-cli.py init <project-name>
@@ -33,7 +33,7 @@ import shutil
 import shlex
 import json
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import typer
 import httpx
@@ -57,6 +57,15 @@ from datetime import datetime, timezone
 ssl_context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 client = httpx.Client(verify=ssl_context)
 
+# Version
+__version__ = "0.0.1"
+
+# =============================================================================
+# AI Agent Support
+# =============================================================================
+
+SUPPORTED_AI_AGENTS = ["claude", "codex"]
+
 # =============================================================================
 # Language Support (ja, en)
 # =============================================================================
@@ -68,7 +77,7 @@ LANGUAGE_NAMES = {
     "en": "English",
 }
 
-# Global language setting (default to English for compatibility with spec-kit)
+# Global language setting (default to English for compatibility with grove)
 _current_lang = "en"
 
 def get_lang() -> str:
@@ -84,14 +93,110 @@ def set_lang(lang: str) -> None:
 # Internationalization dictionary
 I18N = {
     "ja": {
-        "tagline": "Specify EX - 仕様駆動開発ツールキット",
+        "tagline": "Grove - 仕様駆動開発ツールキット",
         "banner_subtitle": "拡張版 - 多言語対応",
-        "help_usage": "'specify-ex --help' で使用方法を表示",
+        "help_usage": "'grove --help' で使用方法を表示",
+        # init command messages
+        "selected_language": "選択された言語",
+        "selected_ai": "選択されたAIアシスタント",
+        "selected_script": "選択されたスクリプトタイプ",
+        "warning_not_empty": "警告: カレントディレクトリは空ではありません",
+        "items_found": "個のアイテムが存在します",
+        "template_merge_warning": "テンプレートファイルは既存のコンテンツとマージされ、既存のファイルを上書きする可能性があります",
+        "force_skipping_confirmation": "--force が指定されました: 確認をスキップしてマージを続行します",
+        "confirm_continue": "続行しますか?",
+        "operation_cancelled": "操作がキャンセルされました",
+        "error_unsupported_language": "エラー: サポートされていない言語",
+        "supported_languages": "サポート対象",
+        "error_must_specify_project": "エラー: プロジェクト名を指定するか、カレントディレクトリには '.' を使用するか、--here フラグを使用してください",
+        # Project setup messages
+        "project_ready": "プロジェクトの準備が完了しました。",
+        "agent_folder_security": "エージェントフォルダーのセキュリティ",
+        "agent_folder_security_message": "一部のエージェントは、プロジェクト内のエージェントフォルダーに認証情報、認証トークン、またはその他の識別情報や個人的な成果物を保存する場合があります。\n誤って認証情報が漏洩するのを防ぐため、{folder}（またはその一部）を.gitignoreに追加することを検討してください。",
+        "next_steps": "次のステップ",
+        "next_steps_already_in_dir": "すでにプロジェクトディレクトリにいます！",
+        "next_steps_start_using": "AIエージェントでスラッシュコマンドを使い始める：",
+        "next_steps_constitution": "プロジェクトの原則を確立",
+        "next_steps_specify": "ベースライン仕様を作成",
+        "next_steps_design": "デザイン仕様を作成（オプション）",
+        "next_steps_plan": "実装計画を作成",
+        "next_steps_tasks": "実行可能なタスクを生成",
+        "next_steps_implement": "実装を実行",
+        "enhancement_commands": "拡張コマンド",
+        "enhancement_commands_desc": "仕様に使用できるオプションのコマンド（品質と信頼性を向上）",
+        "enhancement_clarify": "計画前に曖昧な領域をデリスクするための構造化された質問（使用する場合は /grove.plan の前に実行）",
+        "enhancement_analyze": "成果物間の整合性と一貫性レポート（/grove.tasks の後、/grove.implement の前）",
+        "enhancement_checklist": "要件の完全性、明確性、一貫性を検証する品質チェックリストを生成（/grove.plan の後）",
+        "enhancement_review": "実装の品質検証とクロスレビューを実行（/grove.implement の後）",
+        "enhancement_fix": "クロスレビューで検出された問題を修正（/grove.review の後）",
+        # StepTracker labels
+        "tracker_title": "Grove プロジェクトを初期化",
+        "tracker_precheck": "必要なツールをチェック",
+        "tracker_ai_select": "AIアシスタントを選択",
+        "tracker_script_select": "スクリプトタイプを選択",
+        "tracker_fetch": "最新リリースを取得",
+        "tracker_download": "テンプレートをダウンロード",
+        "tracker_extract": "テンプレートを展開",
+        "tracker_archive": "アーカイブ内容",
+        "tracker_extract_summary": "展開サマリー",
+        "tracker_chmod": "スクリプトに実行権限を設定",
+        "tracker_cleanup": "クリーンアップ",
+        "tracker_git_init": "Gitリポジトリを初期化",
+        "tracker_finalize": "最終処理",
+        "tracker_install_templates": "言語固有のテンプレートをインストール",
     },
     "en": {
-        "tagline": "Specify EX - Spec-Driven Development Toolkit",
+        "tagline": "Grove - Spec-Driven Development Toolkit",
         "banner_subtitle": "Extended version with multi-language support",
-        "help_usage": "Run 'specify-ex --help' for usage information",
+        "help_usage": "Run 'grove --help' for usage information",
+        # init command messages
+        "selected_language": "Selected language",
+        "selected_ai": "Selected AI assistant",
+        "selected_script": "Selected script type",
+        "warning_not_empty": "Warning: Current directory is not empty",
+        "items_found": "items",
+        "template_merge_warning": "Template files will be merged with existing content and may overwrite existing files",
+        "force_skipping_confirmation": "--force supplied: skipping confirmation and proceeding with merge",
+        "confirm_continue": "Do you want to continue?",
+        "operation_cancelled": "Operation cancelled",
+        "error_unsupported_language": "Error: Unsupported language",
+        "supported_languages": "Supported",
+        "error_must_specify_project": "Error: Must specify either a project name, use '.' for current directory, or use --here flag",
+        # Project setup messages
+        "project_ready": "Project ready.",
+        "agent_folder_security": "Agent Folder Security",
+        "agent_folder_security_message": "Some agents may store credentials, auth tokens, or other identifying and private artifacts in the agent folder within your project.\nConsider adding {folder} (or parts of it) to .gitignore to prevent accidental credential leakage.",
+        "next_steps": "Next Steps",
+        "next_steps_already_in_dir": "You're already in the project directory!",
+        "next_steps_start_using": "Start using slash commands with your AI agent:",
+        "next_steps_constitution": "Establish project principles",
+        "next_steps_specify": "Create baseline specification",
+        "next_steps_design": "Create design specification (optional)",
+        "next_steps_plan": "Create implementation plan",
+        "next_steps_tasks": "Generate actionable tasks",
+        "next_steps_implement": "Execute implementation",
+        "enhancement_commands": "Enhancement Commands",
+        "enhancement_commands_desc": "Optional commands that you can use for your specs (improve quality & confidence)",
+        "enhancement_clarify": "Ask structured questions to de-risk ambiguous areas before planning (run before /grove.plan if used)",
+        "enhancement_analyze": "Cross-artifact consistency & alignment report (after /grove.tasks, before /grove.implement)",
+        "enhancement_checklist": "Generate quality checklists to validate requirements completeness, clarity, and consistency (after /grove.plan)",
+        "enhancement_review": "Execute quality verification and cross-review of implementation (after /grove.implement)",
+        "enhancement_fix": "Fix issues detected in cross-review (after /grove.review)",
+        # StepTracker labels
+        "tracker_title": "Initialize Grove Project",
+        "tracker_precheck": "Check required tools",
+        "tracker_ai_select": "Select AI assistant",
+        "tracker_script_select": "Select script type",
+        "tracker_fetch": "Fetch latest release",
+        "tracker_download": "Download template",
+        "tracker_extract": "Extract template",
+        "tracker_archive": "Archive contents",
+        "tracker_extract_summary": "Extraction summary",
+        "tracker_chmod": "Set script permissions recursively",
+        "tracker_cleanup": "Cleanup",
+        "tracker_git_init": "Initialize git repository",
+        "tracker_finalize": "Finalize",
+        "tracker_install_templates": "Installing language-specific templates",
     },
 }
 
@@ -104,7 +209,7 @@ def t(key: str) -> str:
 # =============================================================================
 
 def load_project_config(project_dir: Path) -> dict:
-    """Load project configuration from .specify/memory/config.json
+    """Load project configuration from .grove/memory/config.json
 
     Args:
         project_dir: Project root directory
@@ -112,19 +217,19 @@ def load_project_config(project_dir: Path) -> dict:
     Returns:
         Configuration dictionary (returns default if file doesn't exist)
     """
-    config_file = project_dir / ".specify" / "memory" / "config.json"
+    config_file = project_dir / ".grove" / "memory" / "config.json"
     if config_file.exists():
         return json.loads(config_file.read_text())
     return {"language": "en", "version": "0.2.0"}
 
 def save_project_config(project_dir: Path, config: dict) -> None:
-    """Save project configuration to .specify/memory/config.json
+    """Save project configuration to .grove/memory/config.json
 
     Args:
         project_dir: Project root directory
         config: Configuration dictionary to save
     """
-    config_dir = project_dir / ".specify" / "memory"
+    config_dir = project_dir / ".grove" / "memory"
     config_dir.mkdir(parents=True, exist_ok=True)
     config_file = config_dir / "config.json"
     config["version"] = "0.2.0"
@@ -201,7 +306,7 @@ def get_templates_root() -> Path:
         RuntimeError: If templates directory not found
     """
     # Try installed location
-    installed_path = Path(sys.prefix) / "share" / "specify-ex-cli" / "templates"
+    installed_path = Path(sys.prefix) / "share" / "grove-cli" / "templates"
     if installed_path.exists():
         return installed_path
 
@@ -381,7 +486,7 @@ def install_agent_config(ai: str, project_dir: Path) -> None:
     shutil.copy2(source_file, dest_file)
 
 def install_claude_code_templates(project_dir: Path) -> None:
-    """Install Claude Code templates (commands, skills, agents) to .claude/ directory
+    """Install Claude Code templates (commands, skills, agents, rules) to .claude/ directory
 
     This copies templates from templates/agents/claude/ to user project's .claude/ directory.
 
@@ -414,8 +519,10 @@ def install_claude_code_templates(project_dir: Path) -> None:
             │   │   └── SKILL.md
             │   └── load-project-context/
             │       └── SKILL.md
-            └── agents/            # Subagent templates
-                └── executor.md
+            ├── agents/            # Subagent templates
+            │   └── executor.md
+            └── rules/             # Claude Code rules
+                └── constitution.md
 
     Args:
         project_dir: Project root directory
@@ -456,10 +563,20 @@ def install_claude_code_templates(project_dir: Path) -> None:
             if agent_file.is_file():
                 shutil.copy2(agent_file, agents_dest / agent_file.name)
 
+    # 4. Copy Rules
+    rules_src = claude_templates / "rules"
+    rules_dest = claude_dir / "rules"
+    if rules_src.exists():
+        rules_dest.mkdir(parents=True, exist_ok=True)
+        for rule_file in rules_src.iterdir():
+            if rule_file.is_file():
+                shutil.copy2(rule_file, rules_dest / rule_file.name)
+
     console.print(f"[green]✓[/green] Claude Code templates installed to {claude_dir}")
     console.print(f"[dim]  - CLAUDE.md: copied to project root[/dim]")
     console.print(f"[dim]  - Commands: {len(list((commands_dest).iterdir()) if commands_dest.exists() else [])} files[/dim]")
     console.print(f"[dim]  - Agents: {len(list((agents_dest).iterdir()) if agents_dest.exists() else [])} files[/dim]")
+    console.print(f"[dim]  - Rules: {len(list((rules_dest).iterdir()) if rules_dest.exists() else [])} files[/dim]")
 
 def ensure_agent_installed(agent: str, project_dir: Path) -> None:
     """
@@ -726,15 +843,15 @@ SCRIPT_TYPE_CHOICES = {"sh": "POSIX Shell (bash/zsh)", "ps": "PowerShell"}
 CLAUDE_LOCAL_PATH = Path.home() / ".claude" / "local" / "claude"
 
 BANNER = """
-███████╗██████╗ ███████╗ ██████╗██╗███████╗██╗   ██╗    ███████╗██╗  ██╗
-██╔════╝██╔══██╗██╔════╝██╔════╝██║██╔════╝╚██╗ ██╔╝    ██╔════╝╚██╗██╔╝
-███████╗██████╔╝█████╗  ██║     ██║█████╗   ╚████╔╝     █████╗   ╚███╔╝
-╚════██║██╔═══╝ ██╔══╝  ██║     ██║██╔══╝    ╚██╔╝      ██╔══╝   ██╔██╗
-███████║██║     ███████╗╚██████╗██║██║        ██║       ███████╗██╔╝ ██╗
-╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝╚═╝        ╚═╝       ╚══════╝╚═╝  ╚═╝
+ ██████╗ ██████╗  ██████╗ ██╗   ██╗███████╗
+██╔════╝ ██╔══██╗██╔═══██╗██║   ██║██╔════╝
+██║  ███╗██████╔╝██║   ██║██║   ██║█████╗
+██║   ██║██╔══██╗██║   ██║╚██╗ ██╔╝██╔══╝
+╚██████╔╝██║  ██║╚██████╔╝ ╚████╔╝ ███████╗
+ ╚═════╝ ╚═╝  ╚═╝ ╚═════╝   ╚═══╝  ╚══════╝
 """
 
-TAGLINE = "GitHub Spec Kit EX - Spec-Driven Development Toolkit"
+TAGLINE = "Grove - Spec-Driven Development Toolkit"
 class StepTracker:
     """Track and render hierarchical steps without emojis, similar to Claude Code tree output.
     Supports live auto-refresh via an attached refresh callback.
@@ -928,11 +1045,31 @@ class BannerGroup(TyperGroup):
 
 app = typer.Typer(
     name="specify",
-    help="Setup tool for Specify EX spec-driven development projects",
+    help="Setup tool for Grove spec-driven development projects",
     add_completion=False,
     invoke_without_command=True,
     cls=BannerGroup,
 )
+
+def version_callback(value: bool):
+    """Show version and exit."""
+    if value:
+        console.print(f"[cyan]Grove CLI[/cyan] version [bold]{__version__}[/bold]")
+        raise typer.Exit()
+
+@app.callback()
+def main_callback(
+    version: Optional[bool] = typer.Option(
+        None,
+        "--version",
+        "-v",
+        help="Show version and exit",
+        callback=version_callback,
+        is_eager=True,
+    )
+):
+    """Grove CLI - Setup tool for Grove spec-driven development projects."""
+    pass
 
 def show_banner():
     """Display the ASCII art banner."""
@@ -987,7 +1124,7 @@ def check_tool(tool: str, tracker: StepTracker = None) -> bool:
         True if tool is found, False otherwise
     """
     # Special handling for Claude CLI after `claude migrate-installer`
-    # See: https://github.com/github/spec-kit/issues/123
+    # See: https://github.com/github/grove/issues/123
     # The migrate-installer command REMOVES the original executable from PATH
     # and creates an alias at ~/.claude/local/claude instead
     # This path should be prioritized over other claude executables in PATH
@@ -1044,7 +1181,7 @@ def init_git_repo(project_path: Path, quiet: bool = False) -> Tuple[bool, Option
             console.print("[cyan]Initializing git repository...[/cyan]")
         subprocess.run(["git", "init"], check=True, capture_output=True, text=True)
         subprocess.run(["git", "add", "."], check=True, capture_output=True, text=True)
-        subprocess.run(["git", "commit", "-m", "Initial commit from Specify EX template"], check=True, capture_output=True, text=True)
+        subprocess.run(["git", "commit", "-m", "Initial commit from Grove template"], check=True, capture_output=True, text=True)
         if not quiet:
             console.print("[green]✓[/green] Git repository initialized")
         return True, None
@@ -1131,7 +1268,7 @@ def merge_json_files(existing_path: Path, new_content: dict, verbose: bool = Fal
 
 def download_template_from_github(ai_assistant: str, download_dir: Path, *, script_type: str = "sh", verbose: bool = True, show_progress: bool = True, client: httpx.Client = None, debug: bool = False, github_token: str = None) -> Tuple[Path, dict]:
     repo_owner = "github"
-    repo_name = "spec-kit"
+    repo_name = "grove"
     if client is None:
         client = httpx.Client(verify=ssl_context)
 
@@ -1163,7 +1300,7 @@ def download_template_from_github(ai_assistant: str, download_dir: Path, *, scri
         raise typer.Exit(1)
 
     assets = release_data.get("assets", [])
-    pattern = f"spec-kit-template-{ai_assistant}-{script_type}"
+    pattern = f"grove-template-{ai_assistant}-{script_type}"
     matching_assets = [
         asset for asset in assets
         if pattern in asset["name"] and asset["name"].endswith(".zip")
@@ -1394,10 +1531,10 @@ def download_and_extract_template(project_path: Path, ai_assistant: str, script_
 
 
 def ensure_executable_scripts(project_path: Path, tracker: StepTracker | None = None) -> None:
-    """Ensure POSIX .sh scripts under .specify/scripts (recursively) have execute bits (no-op on Windows)."""
+    """Ensure POSIX .sh scripts under .grove/scripts (recursively) have execute bits (no-op on Windows)."""
     if os.name == "nt":
         return  # Windows: skip silently
-    scripts_root = project_path / ".specify" / "scripts"
+    scripts_root = project_path / ".grove" / "scripts"
     if not scripts_root.is_dir():
         return
     failures: list[str] = []
@@ -1437,19 +1574,21 @@ def ensure_executable_scripts(project_path: Path, tracker: StepTracker | None = 
             for f in failures:
                 console.print(f"  - {f}")
 
-def install_common_templates(project_dir: Path, lang: str, tracker: StepTracker = None) -> None:
+def install_common_templates(project_dir: Path, lang: str, script_type: str, tracker: StepTracker = None) -> None:
     """Install language-specific templates to project.
 
     Args:
         project_dir: Project directory path
         lang: Language code (ja or en)
+        script_type: Script type (sh or ps)
         tracker: Optional StepTracker for progress display
 
     Processing flow:
-        1. Read from specify_cli/templates/{lang}/
-        2. Copy to project's .specify/templates/
-        3. Overwrite with enabled-flag templates
-        4. Fallback: Use English if specified language doesn't exist
+        1. Read from grove_cli/templates/{lang}/
+        2. Copy to project's .grove/templates/
+        3. Copy scripts based on script_type
+        4. Copy memory directory
+        5. Fallback: Use English if specified language doesn't exist
 
     Target templates:
         - constitution-template.md
@@ -1459,25 +1598,15 @@ def install_common_templates(project_dir: Path, lang: str, tracker: StepTracker 
         - checklist-template.md (for reference, AI generates dynamically)
     """
     if tracker:
-        tracker.step("Installing language-specific templates")
+        tracker.add("install-templates", "Installing language-specific templates")
+        tracker.start("install-templates")
 
-    # Get template directory (check multiple locations for dev vs installed)
-    templates_root = None
+    # Get template directory (installed location only)
+    templates_root = Path(sys.prefix) / "share" / "grove-cli" / "templates"
 
-    # Try 1: Installed location (sys.prefix/share/specify-ex-cli/templates)
-    installed_path = Path(sys.prefix) / "share" / "specify-ex-cli" / "templates"
-    if installed_path.exists():
-        templates_root = installed_path
-
-    # Try 2: Development location (project_root/templates)
-    if templates_root is None:
-        dev_path = Path(__file__).parent.parent.parent / "templates"
-        if dev_path.exists():
-            templates_root = dev_path
-
-    if templates_root is None:
+    if not templates_root.exists():
         if tracker:
-            tracker.warn("No templates found in package or development directory")
+            tracker.warn("No templates found in package directory")
         return
 
     templates_source = templates_root / lang
@@ -1494,33 +1623,80 @@ def install_common_templates(project_dir: Path, lang: str, tracker: StepTracker 
         return
 
     # Create destination directory
-    templates_dest = project_dir / ".specify" / "templates"
+    templates_dest = project_dir / ".grove" / "templates"
     templates_dest.mkdir(parents=True, exist_ok=True)
 
-    # Copy template files
-    template_files = [
+    # Language-specific template files (from templates/{lang}/)
+    lang_specific_files = [
         "constitution-template.md",
         "spec-template.md",
+    ]
+
+    # Common template files (from templates/ root, language-independent)
+    common_files = [
         "plan-template.md",
         "tasks-template.md",
         "checklist-template.md",
+        "agent-file-template.md",
+        "verification-template.md",
     ]
 
     copied = 0
-    for template_file in template_files:
+
+    # Copy language-specific templates
+    for template_file in lang_specific_files:
         source_file = templates_source / template_file
         if source_file.exists():
             dest_file = templates_dest / template_file
             shutil.copy2(source_file, dest_file)
             copied += 1
 
+    # Copy common templates (language-independent)
+    for template_file in common_files:
+        source_file = templates_root / template_file
+        if source_file.exists():
+            dest_file = templates_dest / template_file
+            shutil.copy2(source_file, dest_file)
+            copied += 1
+
+    # Copy scripts directory structure (based on script_type)
+    scripts_root = Path(sys.prefix) / "share" / "grove-cli" / "scripts"
+
+    if scripts_root.exists():
+        scripts_dest = project_dir / ".grove" / "scripts"
+        scripts_dest.mkdir(parents=True, exist_ok=True)
+
+        # Copy only the selected script type directly to .grove/scripts/
+        if script_type == "sh":
+            bash_src = scripts_root / "bash"
+            if bash_src.exists():
+                for script_file in bash_src.glob("*.sh"):
+                    shutil.copy2(script_file, scripts_dest / script_file.name)
+                    copied += 1
+        elif script_type == "ps":
+            ps_src = scripts_root / "powershell"
+            if ps_src.exists():
+                for script_file in ps_src.glob("*.ps1"):
+                    shutil.copy2(script_file, scripts_dest / script_file.name)
+                    copied += 1
+
+    # Copy memory directory structure
+    memory_root = Path(sys.prefix) / "share" / "grove-cli" / "memory"
+
+    if memory_root.exists():
+        memory_dest = project_dir / ".grove" / "memory"
+        if memory_dest.exists():
+            shutil.rmtree(memory_dest)
+        shutil.copytree(memory_root, memory_dest)
+        copied += len(list(memory_dest.rglob("*")))
+
     if tracker and copied > 0:
-        tracker.success(f"Installed {copied} template(s) ({lang})")
+        tracker.complete("install-templates", f"Installed {copied} template(s) ({lang})")
 
 @app.command()
 def init(
     project_name: str = typer.Argument(None, help="Name for your new project directory (optional if using --here, or use '.' for current directory)"),
-    ai_assistant: str = typer.Option(None, "--ai", help="AI assistant to use: claude, gemini, copilot, cursor-agent, qwen, opencode, codex, windsurf, kilocode, auggie, codebuddy, amp, shai, q, bob, or qoder "),
+    ai: List[str] = typer.Option(None, "--ai", help="AI agents to support (can specify multiple): claude, codex"),
     lang: str = typer.Option(None, "--lang", help="Language for templates and messages: ja (Japanese) or en (English)"),
     script_type: str = typer.Option(None, "--script", help="Script type to use: sh or ps"),
     ignore_agent_tools: bool = typer.Option(False, "--ignore-agent-tools", help="Skip checks for AI agent tools like Claude Code"),
@@ -1532,7 +1708,7 @@ def init(
     github_token: str = typer.Option(None, "--github-token", help="GitHub token to use for API requests (or set GH_TOKEN or GITHUB_TOKEN environment variable)"),
 ):
     """
-    Initialize a new Specify EX project from the latest template.
+    Initialize a new Grove project from the latest template.
     
     This command will:
     1. Check that required tools are installed (git is optional)
@@ -1559,8 +1735,9 @@ def init(
     if lang:
         # Validate language option
         if lang not in SUPPORTED_LANGUAGES:
-            console.print(f"[red]Error:[/red] Unsupported language: {lang}")
-            console.print(f"[dim]Supported: {', '.join(SUPPORTED_LANGUAGES)}[/dim]")
+            set_lang("en")  # Set English temporarily for error message
+            console.print(f"[red]{t('error_unsupported_language')}:[/red] {lang}")
+            console.print(f"[dim]{t('supported_languages')}: {', '.join(SUPPORTED_LANGUAGES)}[/dim]")
             raise typer.Exit(1)
         selected_lang = lang
     else:
@@ -1576,10 +1753,10 @@ def init(
         choice = typer.prompt("Enter choice", type=int, default=1)
         selected_lang = "en" if choice == 1 else "ja"
 
-    console.print(f"[cyan]Selected language:[/cyan] {LANGUAGE_NAMES[selected_lang]}\n")
-
     # Set language for this session
     set_lang(selected_lang)
+
+    console.print(f"[cyan]{t('selected_language')}:[/cyan] {LANGUAGE_NAMES[selected_lang]}\n")
 
     show_banner()
 
@@ -1592,7 +1769,7 @@ def init(
         raise typer.Exit(1)
 
     if not here and not project_name:
-        console.print("[red]Error:[/red] Must specify either a project name, use '.' for current directory, or use --here flag")
+        console.print(f"[red]{t('error_must_specify_project')}[/red]")
         raise typer.Exit(1)
 
     if here:
@@ -1601,14 +1778,14 @@ def init(
 
         existing_items = list(project_path.iterdir())
         if existing_items:
-            console.print(f"[yellow]Warning:[/yellow] Current directory is not empty ({len(existing_items)} items)")
-            console.print("[yellow]Template files will be merged with existing content and may overwrite existing files[/yellow]")
+            console.print(f"[yellow]{t('warning_not_empty')} ({len(existing_items)} {t('items_found')})[/yellow]")
+            console.print(f"[yellow]{t('template_merge_warning')}[/yellow]")
             if force:
-                console.print("[cyan]--force supplied: skipping confirmation and proceeding with merge[/cyan]")
+                console.print(f"[cyan]{t('force_skipping_confirmation')}[/cyan]")
             else:
-                response = typer.confirm("Do you want to continue?")
+                response = typer.confirm(t('confirm_continue'))
                 if not response:
-                    console.print("[yellow]Operation cancelled[/yellow]")
+                    console.print(f"[yellow]{t('operation_cancelled')}[/yellow]")
                     raise typer.Exit(0)
     else:
         project_path = Path(project_name).resolve()
@@ -1627,7 +1804,7 @@ def init(
     current_dir = Path.cwd()
 
     setup_lines = [
-        "[cyan]Specify EX Project Setup[/cyan]",
+        "[cyan]Grove Project Setup[/cyan]",
         "",
         f"{'Project':<15} [green]{project_path.name}[/green]",
         f"{'Working Path':<15} [dim]{current_dir}[/dim]",
@@ -1644,37 +1821,35 @@ def init(
         if not should_init_git:
             console.print("[yellow]Git not found - will skip repository initialization[/yellow]")
 
-    if ai_assistant:
-        if ai_assistant not in AGENT_CONFIG:
-            console.print(f"[red]Error:[/red] Invalid AI assistant '{ai_assistant}'. Choose from: {', '.join(AGENT_CONFIG.keys())}")
-            raise typer.Exit(1)
-        selected_ai = ai_assistant
-    else:
-        # Create options dict for selection (agent_key: display_name)
-        ai_choices = {key: config["name"] for key, config in AGENT_CONFIG.items()}
-        selected_ai = select_with_arrows(
-            ai_choices, 
-            "Choose your AI assistant:", 
-            "copilot"
-        )
-
-    if not ignore_agent_tools:
-        agent_config = AGENT_CONFIG.get(selected_ai)
-        if agent_config and agent_config["requires_cli"]:
-            install_url = agent_config["install_url"]
-            if not check_tool(selected_ai):
-                error_panel = Panel(
-                    f"[cyan]{selected_ai}[/cyan] not found\n"
-                    f"Install from: [cyan]{install_url}[/cyan]\n"
-                    f"{agent_config['name']} is required to continue with this project type.\n\n"
-                    "Tip: Use [cyan]--ignore-agent-tools[/cyan] to skip this check",
-                    title="[red]Agent Detection Error[/red]",
-                    border_style="red",
-                    padding=(1, 2)
-                )
-                console.print()
-                console.print(error_panel)
+    # Validate and process AI agents (support only claude and codex)
+    if ai:
+        # Validate all specified agents
+        for agent in ai:
+            if agent not in SUPPORTED_AI_AGENTS:
+                console.print(f"[red]Error:[/red] Unsupported AI agent: {agent}")
+                console.print(f"[dim]Supported agents: {', '.join(SUPPORTED_AI_AGENTS)}[/dim]")
                 raise typer.Exit(1)
+        # Remove duplicates while preserving order
+        selected_ai_agents = list(dict.fromkeys(ai))
+    else:
+        # Interactive selection
+        ai_choices = {
+            "claude": "Claude Code",
+            "codex": "OpenAI Codex",
+            "both": "Both (Claude Code + Codex)"
+        }
+        selected_choice = select_with_arrows(
+            ai_choices,
+            "Choose your AI agent(s):",
+            "claude"
+        )
+        if selected_choice == "both":
+            selected_ai_agents = ["claude", "codex"]
+        else:
+            selected_ai_agents = [selected_choice]
+
+    # Note: Claude Code and Codex don't require CLI tool checks
+    # Configuration files will be installed regardless of whether the tools are present
 
     if script_type:
         if script_type not in SCRIPT_TYPE_CHOICES:
@@ -1689,31 +1864,31 @@ def init(
         else:
             selected_script = default_script
 
-    console.print(f"[cyan]Selected AI assistant:[/cyan] {selected_ai}")
-    console.print(f"[cyan]Selected script type:[/cyan] {selected_script}")
+    console.print(f"[cyan]{t('selected_ai')}:[/cyan] {', '.join(selected_ai_agents)}")
+    console.print(f"[cyan]{t('selected_script')}:[/cyan] {selected_script}")
 
-    tracker = StepTracker("Initialize Specify EX Project")
+    tracker = StepTracker(t('tracker_title'))
 
     sys._specify_tracker_active = True
 
-    tracker.add("precheck", "Check required tools")
+    tracker.add("precheck", t('tracker_precheck'))
     tracker.complete("precheck", "ok")
-    tracker.add("ai-select", "Select AI assistant")
-    tracker.complete("ai-select", f"{selected_ai}")
-    tracker.add("script-select", "Select script type")
+    tracker.add("ai-select", t('tracker_ai_select'))
+    tracker.complete("ai-select", f"{', '.join(selected_ai_agents)}")
+    tracker.add("script-select", t('tracker_script_select'))
     tracker.complete("script-select", selected_script)
-    for key, label in [
-        ("fetch", "Fetch latest release"),
-        ("download", "Download template"),
-        ("extract", "Extract template"),
-        ("zip-list", "Archive contents"),
-        ("extracted-summary", "Extraction summary"),
-        ("chmod", "Ensure scripts executable"),
-        ("cleanup", "Cleanup"),
-        ("git", "Initialize git repository"),
-        ("final", "Finalize")
+    for key, label_key in [
+        ("fetch", "tracker_fetch"),
+        ("download", "tracker_download"),
+        ("extract", "tracker_extract"),
+        ("zip-list", "tracker_archive"),
+        ("extracted-summary", "tracker_extract_summary"),
+        ("chmod", "tracker_chmod"),
+        ("cleanup", "tracker_cleanup"),
+        ("git", "tracker_git_init"),
+        ("final", "tracker_finalize")
     ]:
-        tracker.add(key, label)
+        tracker.add(key, t(label_key))
 
     # Track git error message outside Live context so it persists
     git_error_message = None
@@ -1725,10 +1900,12 @@ def init(
             local_ssl_context = ssl_context if verify else False
             local_client = httpx.Client(verify=local_ssl_context)
 
-            download_and_extract_template(project_path, selected_ai, selected_script, here, verbose=False, tracker=tracker, client=local_client, debug=debug, github_token=github_token)
+            # Download base template from GitHub
+            # Use first selected AI agent for template download (base template)
+            download_and_extract_template(project_path, selected_ai_agents[0], selected_script, here, verbose=False, tracker=tracker, client=local_client, debug=debug, github_token=github_token)
 
-            # Install language-specific templates
-            install_common_templates(project_path, selected_lang, tracker=tracker)
+            # Install language-specific templates (.grove/ directory structure)
+            install_common_templates(project_path, selected_lang, selected_script, tracker=tracker)
 
             ensure_executable_scripts(project_path, tracker=tracker)
 
@@ -1768,17 +1945,23 @@ def init(
             pass
 
     console.print(tracker.render())
-    console.print("\n[bold green]Project ready.[/bold green]")
+    console.print(f"\n[bold green]{t('project_ready')}[/bold green]")
 
     # Save project configuration
     save_project_config(project_path, {"language": selected_lang})
 
-    # Install agent configuration file
-    install_agent_config(selected_ai, project_path)
+    # Install configuration files for each selected AI agent
+    console.print()
 
-    # Install Claude Code templates if Claude is selected
-    if selected_ai == "claude":
-        install_claude_code_templates(project_path)
+    for agent_name in selected_ai_agents:
+        if agent_name == "claude":
+            # Download from GitHub
+            ensure_agent_installed("claude", project_path)
+            console.print(f"[green]✓[/green] Claude Code configuration downloaded from GitHub")
+        elif agent_name == "codex":
+            # Download from GitHub
+            ensure_agent_installed("codex", project_path)
+            console.print(f"[green]✓[/green] Codex configuration downloaded from GitHub")
 
     # Show git error details if initialization failed
     if git_error_message:
@@ -1798,13 +1981,18 @@ def init(
         console.print(git_error_panel)
 
     # Agent folder security notice
-    agent_config = AGENT_CONFIG.get(selected_ai)
-    if agent_config:
-        agent_folder = agent_config["folder"]
+    agent_folders = []
+    if "claude" in selected_ai_agents:
+        agent_folders.append(".claude/")
+    if "codex" in selected_ai_agents:
+        agent_folders.append(".codex/")
+
+    if agent_folders:
+        folders_str = ", ".join(f"[cyan]{folder}[/cyan]" for folder in agent_folders)
+        message = t('agent_folder_security_message').format(folder=folders_str)
         security_notice = Panel(
-            f"Some agents may store credentials, auth tokens, or other identifying and private artifacts in the agent folder within your project.\n"
-            f"Consider adding [cyan]{agent_folder}[/cyan] (or parts of it) to [cyan].gitignore[/cyan] to prevent accidental credential leakage.",
-            title="[yellow]Agent Folder Security[/yellow]",
+            message,
+            title=f"[yellow]{t('agent_folder_security')}[/yellow]",
             border_style="yellow",
             padding=(1, 2)
         )
@@ -1813,44 +2001,49 @@ def init(
 
     steps_lines = []
     if not here:
-        steps_lines.append(f"1. Go to the project folder: [cyan]cd {project_name}[/cyan]")
+        go_to_folder_msg = f"プロジェクトフォルダーに移動: [cyan]cd {project_name}[/cyan]" if selected_lang == "ja" else f"Go to the project folder: [cyan]cd {project_name}[/cyan]"
+        steps_lines.append(f"1. {go_to_folder_msg}")
         step_num = 2
     else:
-        steps_lines.append("1. You're already in the project directory!")
+        steps_lines.append(f"1. {t('next_steps_already_in_dir')}")
         step_num = 2
 
     # Add Codex-specific setup step if needed
-    if selected_ai == "codex":
+    if "codex" in selected_ai_agents:
         codex_path = project_path / ".codex"
         quoted_path = shlex.quote(str(codex_path))
         if os.name == "nt":  # Windows
             cmd = f"setx CODEX_HOME {quoted_path}"
         else:  # Unix-like systems
             cmd = f"export CODEX_HOME={quoted_path}"
-        
-        steps_lines.append(f"{step_num}. Set [cyan]CODEX_HOME[/cyan] environment variable before running Codex: [cyan]{cmd}[/cyan]")
+
+        set_env_msg = f"{step_num}. Codex実行前に [cyan]CODEX_HOME[/cyan] 環境変数を設定: [cyan]{cmd}[/cyan]" if selected_lang == "ja" else f"{step_num}. Set [cyan]CODEX_HOME[/cyan] environment variable before running Codex: [cyan]{cmd}[/cyan]"
+        steps_lines.append(set_env_msg)
         step_num += 1
 
-    steps_lines.append(f"{step_num}. Start using slash commands with your AI agent:")
+    steps_lines.append(f"{step_num}. {t('next_steps_start_using')}")
 
-    steps_lines.append("   2.1 [cyan]/speckit.constitution[/] - Establish project principles")
-    steps_lines.append("   2.2 [cyan]/speckit.specify[/] - Create baseline specification")
-    steps_lines.append("   2.3 [cyan]/speckit.plan[/] - Create implementation plan")
-    steps_lines.append("   2.4 [cyan]/speckit.tasks[/] - Generate actionable tasks")
-    steps_lines.append("   2.5 [cyan]/speckit.implement[/] - Execute implementation")
+    steps_lines.append(f"   {step_num}.1 [cyan]/grove.constitution[/] - {t('next_steps_constitution')}")
+    steps_lines.append(f"   {step_num}.2 [cyan]/grove.specify[/] - {t('next_steps_specify')}")
+    steps_lines.append(f"   {step_num}.3 [cyan]/grove.design[/] - {t('next_steps_design')}")
+    steps_lines.append(f"   {step_num}.4 [cyan]/grove.plan[/] - {t('next_steps_plan')}")
+    steps_lines.append(f"   {step_num}.5 [cyan]/grove.tasks[/] - {t('next_steps_tasks')}")
+    steps_lines.append(f"   {step_num}.6 [cyan]/grove.implement[/] - {t('next_steps_implement')}")
 
-    steps_panel = Panel("\n".join(steps_lines), title="Next Steps", border_style="cyan", padding=(1,2))
+    steps_panel = Panel("\n".join(steps_lines), title=t('next_steps'), border_style="cyan", padding=(1,2))
     console.print()
     console.print(steps_panel)
 
     enhancement_lines = [
-        "Optional commands that you can use for your specs [bright_black](improve quality & confidence)[/bright_black]",
+        f"{t('enhancement_commands_desc')}",
         "",
-        f"○ [cyan]/speckit.clarify[/] [bright_black](optional)[/bright_black] - Ask structured questions to de-risk ambiguous areas before planning (run before [cyan]/speckit.plan[/] if used)",
-        f"○ [cyan]/speckit.analyze[/] [bright_black](optional)[/bright_black] - Cross-artifact consistency & alignment report (after [cyan]/speckit.tasks[/], before [cyan]/speckit.implement[/])",
-        f"○ [cyan]/speckit.checklist[/] [bright_black](optional)[/bright_black] - Generate quality checklists to validate requirements completeness, clarity, and consistency (after [cyan]/speckit.plan[/])"
+        f"○ [cyan]/grove.clarify[/] [bright_black](optional)[/bright_black] - {t('enhancement_clarify')}",
+        f"○ [cyan]/grove.analyze[/] [bright_black](optional)[/bright_black] - {t('enhancement_analyze')}",
+        f"○ [cyan]/grove.checklist[/] [bright_black](optional)[/bright_black] - {t('enhancement_checklist')}",
+        f"○ [cyan]/grove.review[/] [bright_black](optional)[/bright_black] - {t('enhancement_review')}",
+        f"○ [cyan]/grove.fix[/] [bright_black](optional)[/bright_black] - {t('enhancement_fix')}"
     ]
-    enhancements_panel = Panel("\n".join(enhancement_lines), title="Enhancement Commands", border_style="cyan", padding=(1,2))
+    enhancements_panel = Panel("\n".join(enhancement_lines), title=t('enhancement_commands'), border_style="cyan", padding=(1,2))
     console.print()
     console.print(enhancements_panel)
 
@@ -1888,7 +2081,7 @@ def check():
 
     console.print(tracker.render())
 
-    console.print("\n[bold green]Specify EX CLI is ready to use![/bold green]")
+    console.print("\n[bold green]Grove CLI is ready to use![/bold green]")
 
     if not git_ok:
         console.print("[dim]Tip: Install git for repository management[/dim]")
@@ -1921,8 +2114,8 @@ def version():
             pass
     
     # Fetch latest template release version
-    repo_owner = "github"
-    repo_name = "spec-kit"
+    repo_owner = "cardene777"
+    repo_name = "grove"
     api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
     
     template_version = "unknown"
@@ -1967,7 +2160,7 @@ def version():
 
     panel = Panel(
         info_table,
-        title="[bold cyan]Specify EX CLI Information[/bold cyan]",
+        title="[bold cyan]Grove CLI Information[/bold cyan]",
         border_style="cyan",
         padding=(1, 2)
     )
@@ -2181,7 +2374,7 @@ def find_doc_file(file_path: Path, docs_dir: Path) -> Optional[Path]:
 
     Args:
         file_path: Source file path (relative to project root)
-        docs_dir: Documentation directory (.specify/docs/)
+        docs_dir: Documentation directory (.grove/docs/)
 
     Returns:
         Path to documentation file, or None if not found
@@ -2280,7 +2473,7 @@ def record_implementation_changes(project_dir: Path) -> int:
     if not changed_files:
         return 0
 
-    docs_dir = project_dir / ".specify" / "docs"
+    docs_dir = project_dir / ".grove" / "docs"
     if not docs_dir.exists():
         return 0
 
@@ -2365,7 +2558,7 @@ class AgentExecutor:
             raise RuntimeError("Claude Code is not installed. Install from: https://docs.anthropic.com/en/docs/claude-code/setup")
 
         # Build slash command prompt
-        slash_command = f"/speckit.{command}"
+        slash_command = f"/grove.{command}"
 
         # Add template content if provided
         if template_content:
@@ -2383,7 +2576,7 @@ Spawn async subagent to monitor file changes and update documentation:
 Your task is to run in the background and monitor for file changes during implementation. When you detect changes:
 
 1. **For new files**:
-   - Generate documentation in `.specify/docs/` following the project structure
+   - Generate documentation in `.grove/docs/` following the project structure
    - Use the same format as existing docs (Purpose, Key Functions/Classes, Dependencies, Change History)
    - Place docs in the correct subdirectory mirroring source structure
 
@@ -2436,7 +2629,7 @@ Continue monitoring until the main implementation task completes, then notify co
             raise RuntimeError("Codex CLI is not installed. Install from: https://github.com/openai/codex")
 
         # Similar to Claude, but with codex CLI syntax
-        slash_command = f"/speckit.{command}"
+        slash_command = f"/grove.{command}"
 
         # Add template content if provided
         if template_content:
@@ -2454,7 +2647,7 @@ IMPORTANT - Documentation Update:
 After completing each task, update the documentation:
 
 1. List files you changed
-2. Update corresponding documentation in `.specify/docs/`:
+2. Update corresponding documentation in `.grove/docs/`:
    - New files: Create new documentation
    - Modified files: Append change entry to Change History section
    - Deleted files: Add deletion note to documentation
@@ -2490,7 +2683,7 @@ After completing each task, update the documentation:
         if not check_tool("gemini"):
             raise RuntimeError("Gemini CLI is not installed. Install from: https://github.com/google-gemini/gemini-cli")
 
-        slash_command = f"/speckit.{command}"
+        slash_command = f"/grove.{command}"
 
         # Add template content if provided
         if template_content:
@@ -2508,7 +2701,7 @@ IMPORTANT - Documentation Update:
 After completing each task, update the documentation:
 
 1. List files you changed
-2. Update corresponding documentation in `.specify/docs/`:
+2. Update corresponding documentation in `.grove/docs/`:
    - New files: Create new documentation
    - Modified files: Append change entry to Change History section
    - Deleted files: Add deletion note to documentation
@@ -2542,7 +2735,7 @@ After completing each task, update the documentation:
     def _execute_generic(self, command: str, _prompt: str = "", _template_content: Optional[str] = None) -> Path:
         """Generic execution for other agents (placeholder)."""
         console.print(f"[yellow]Warning:[/yellow] Generic execution for {self.agent} not fully implemented")
-        console.print(f"[yellow]Please manually run:[/yellow] /speckit.{command}")
+        console.print(f"[yellow]Please manually run:[/yellow] /grove.{command}")
 
         # Return expected output path
         return self._get_output_path(command)
@@ -2554,7 +2747,7 @@ After completing each task, update the documentation:
         elif command in ["specify", "plan", "tasks"]:
             # TODO: Determine feature-id from git branch or environment variable
             feature_id = "current"
-            specs_dir = self.project_dir / ".specify" / "specs" / feature_id
+            specs_dir = self.project_dir / ".grove" / "specs" / feature_id
             return specs_dir / f"{command}.md"
         elif command == "implement":
             # implement doesn't generate a file, executes implementation
@@ -2562,360 +2755,6 @@ After completing each task, update the documentation:
         else:
             return self.project_dir / f"{command}.md"
 
-@app.command()
-def constitution(
-    ai: str = typer.Option(None, "--ai", help="AI agent to use (single agent)"),
-    project_dir: Path = typer.Option(None, "--dir", help="Project directory (default: current)"),
-):
-    """
-    Create project constitution using specified AI agent.
-
-    Examples:
-        specify-ex constitution --ai claude
-        specify-ex constitution
-    """
-    if project_dir is None:
-        project_dir = Path.cwd()
-
-    # Claude Code environment detection
-    if is_claude_code_environment(ai):
-        console.print("[cyan]Claude Code detected[/cyan]")
-        console.print("[yellow]Execute: /speckit.constitution[/yellow]")
-        console.print("[dim]This will use the constitution-knowledge skill[/dim]")
-        return
-
-    # Load template if enabled
-    template_content = load_template_if_enabled("constitution", project_dir)
-
-    if ai:
-        # Single agent execution
-        console.print(f"[cyan]Creating constitution with {AGENT_CONFIG[ai]['name']}...[/cyan]")
-
-        # Check if agent is installed, if not, auto-install
-        ensure_agent_installed(ai, project_dir)
-
-        # Execute agent with constitution command
-        executor = AgentExecutor(ai, project_dir)
-        output_path = executor.execute("constitution", template_content=template_content)
-
-        console.print("[green]✓[/green] Constitution created successfully")
-        console.print(f"[dim]Output: {output_path}[/dim]")
-    else:
-        # Interactive selection
-        selected_agent = select_agent_interactive()
-
-        # Execute with selected agent
-        ensure_agent_installed(selected_agent, project_dir)
-        executor = AgentExecutor(selected_agent, project_dir)
-        output_path = executor.execute("constitution", template_content=template_content)
-
-        console.print("[green]✓[/green] Constitution created successfully")
-        console.print(f"[dim]Output: {output_path}[/dim]")
-
-@app.command()
-def specify(
-    prompt: str = typer.Argument(None, help="Feature description or requirement"),
-    ai: str = typer.Option(None, "--ai", help="AI agent to use (single agent)"),
-    project_dir: Path = typer.Option(None, "--dir", help="Project directory (default: current)"),
-):
-    """
-    Create feature specification using specified AI agent.
-
-    Examples:
-        specify-ex specify --ai claude "Add user authentication"
-        specify-ex specify "Add dark mode toggle"
-    """
-    if project_dir is None:
-        project_dir = Path.cwd()
-
-    # Claude Code environment detection
-    if is_claude_code_environment(ai):
-        console.print("[cyan]Claude Code detected[/cyan]")
-        console.print("[yellow]Execute: /speckit.specify[/yellow]")
-        console.print("[dim]This will use the specify-knowledge skill[/dim]")
-        return
-
-    # Load template if enabled
-    template_content = load_template_if_enabled("specify", project_dir)
-
-    if ai:
-        # Single agent execution
-        console.print(f"[cyan]Creating specification with {AGENT_CONFIG[ai]['name']}...[/cyan]")
-
-        # Check if agent is installed, if not, auto-install
-        ensure_agent_installed(ai, project_dir)
-
-        # Execute agent with specify command
-        executor = AgentExecutor(ai, project_dir)
-        output_path = executor.execute("specify", prompt or "", template_content=template_content)
-
-        console.print("[green]✓[/green] Specification created successfully")
-        console.print(f"[dim]Output: {output_path}[/dim]")
-    else:
-        # Interactive selection
-        selected_agent = select_agent_interactive()
-
-        # Execute with selected agent
-        ensure_agent_installed(selected_agent, project_dir)
-        executor = AgentExecutor(selected_agent, project_dir)
-        output_path = executor.execute("specify", prompt or "", template_content=template_content)
-
-        console.print("[green]✓[/green] Specification created successfully")
-        console.print(f"[dim]Output: {output_path}[/dim]")
-
-@app.command()
-def design(
-    ai: str = typer.Option(None, "--ai", help="AI agent to use"),
-    project_dir: Path = typer.Option(None, "--dir", help="Project directory (default: current)"),
-):
-    """
-    Create UI/UX design skill using design files or requirements.
-
-    This step is executed between 'specify' and 'plan'.
-
-    Examples:
-        specify-ex design --ai claude
-        specify-ex design
-    """
-    if project_dir is None:
-        project_dir = Path.cwd()
-
-    # Claude Code environment detection
-    if is_claude_code_environment(ai):
-        console.print("[cyan]Claude Code detected[/cyan]")
-        console.print("[yellow]Execute: /speckit.design[/yellow]")
-        console.print("[dim]This will use the design-creator skill[/dim]")
-        return
-
-    # Load template if enabled
-    template_content = load_template_if_enabled("design", project_dir)
-
-    # Check for design files
-    design_dir = project_dir / ".specify" / "design"
-    has_design_files = design_dir.exists() and any(design_dir.rglob("*"))
-
-    if has_design_files:
-        console.print("[cyan]Design files found in .specify/design/[/cyan]")
-        console.print("[dim]These files will be analyzed to create design-creator skill[/dim]")
-    else:
-        console.print("[yellow]No design files found in .specify/design/[/yellow]")
-        console.print("[dim]Design-creator skill will be generated from requirements[/dim]")
-
-    if ai:
-        # Single agent execution
-        console.print(f"[cyan]Creating design-creator skill with {AGENT_CONFIG[ai]['name']}...[/cyan]")
-
-        # Check if agent is installed, if not, auto-install
-        ensure_agent_installed(ai, project_dir)
-
-        # Execute design command
-        executor = AgentExecutor(ai, project_dir)
-        output_path = executor.execute("design", template_content=template_content)
-
-        console.print("[green]✓[/green] Design-creator skill created successfully")
-        console.print(f"[dim]Skill location: .claude/skills/design-creator/[/dim]")
-    else:
-        # Interactive agent selection
-        selected_agent = select_agent_interactive()
-
-        # Execute with selected agent
-        ensure_agent_installed(selected_agent, project_dir)
-        executor = AgentExecutor(selected_agent, project_dir)
-        output_path = executor.execute("design", template_content=template_content)
-
-        console.print("[green]✓[/green] Design-creator skill created successfully")
-        console.print(f"[dim]Skill location: .claude/skills/design-creator/[/dim]")
-
-@app.command()
-def plan(
-    ai: str = typer.Option(None, "--ai", help="AI agent to use (single agent)"),
-    project_dir: Path = typer.Option(None, "--dir", help="Project directory (default: current)"),
-):
-    """
-    Create implementation plan using specified AI agent.
-
-    Examples:
-        specify-ex plan --ai claude
-        specify-ex plan
-    """
-    if project_dir is None:
-        project_dir = Path.cwd()
-
-    # Claude Code environment detection
-    if is_claude_code_environment(ai):
-        console.print("[cyan]Claude Code detected[/cyan]")
-        console.print("[yellow]Execute: /speckit.plan[/yellow]")
-        console.print("[dim]This will use the plan-knowledge skill[/dim]")
-        return
-
-    # Load template if enabled
-    template_content = load_template_if_enabled("plan", project_dir)
-
-    if ai:
-        # Single agent execution
-        console.print(f"[cyan]Creating implementation plan with {AGENT_CONFIG[ai]['name']}...[/cyan]")
-
-        # Check if agent is installed, if not, auto-install
-        ensure_agent_installed(ai, project_dir)
-
-        # Execute agent with plan command
-        executor = AgentExecutor(ai, project_dir)
-        output_path = executor.execute("plan", template_content=template_content)
-
-        console.print("[green]✓[/green] Implementation plan created successfully")
-        console.print(f"[dim]Output: {output_path}[/dim]")
-    else:
-        # Interactive selection
-        selected_agent = select_agent_interactive()
-
-        # Execute with selected agent
-        ensure_agent_installed(selected_agent, project_dir)
-        executor = AgentExecutor(selected_agent, project_dir)
-        output_path = executor.execute("plan", template_content=template_content)
-
-        console.print("[green]✓[/green] Implementation plan created successfully")
-        console.print(f"[dim]Output: {output_path}[/dim]")
-
-@app.command()
-def tasks(
-    ai: str = typer.Option(None, "--ai", help="AI agent to use (single agent)"),
-    project_dir: Path = typer.Option(None, "--dir", help="Project directory (default: current)"),
-):
-    """
-    Generate task breakdown using specified AI agent.
-
-    Examples:
-        specify-ex tasks --ai claude
-        specify-ex tasks
-    """
-    if project_dir is None:
-        project_dir = Path.cwd()
-
-    # Claude Code environment detection
-    if is_claude_code_environment(ai):
-        console.print("[cyan]Claude Code detected[/cyan]")
-        console.print("[yellow]Execute: /speckit.tasks[/yellow]")
-        console.print("[dim]This will use the tasks-knowledge skill[/dim]")
-        return
-
-    # Load template if enabled
-    template_content = load_template_if_enabled("tasks", project_dir)
-
-    if ai:
-        # Single agent execution
-        console.print(f"[cyan]Breaking down into tasks with {AGENT_CONFIG[ai]['name']}...[/cyan]")
-
-        # Check if agent is installed, if not, auto-install
-        ensure_agent_installed(ai, project_dir)
-
-        # Execute agent with tasks command
-        executor = AgentExecutor(ai, project_dir)
-        output_path = executor.execute("tasks", template_content=template_content)
-
-        console.print("[green]✓[/green] Task breakdown created successfully")
-        console.print(f"[dim]Output: {output_path}[/dim]")
-    else:
-        # Interactive selection
-        selected_agent = select_agent_interactive()
-
-        # Execute with selected agent
-        ensure_agent_installed(selected_agent, project_dir)
-        executor = AgentExecutor(selected_agent, project_dir)
-        output_path = executor.execute("tasks", template_content=template_content)
-
-        console.print("[green]✓[/green] Task breakdown created successfully")
-        console.print(f"[dim]Output: {output_path}[/dim]")
-
-@app.command()
-def implement(
-    ai: str = typer.Option(None, "--ai", help="AI agent to use (single agent)"),
-    project_dir: Path = typer.Option(None, "--dir", help="Project directory (default: current)"),
-):
-    """
-    Execute implementation based on tasks using specified AI agent.
-
-    Examples:
-        specify-ex implement --ai claude
-        specify-ex implement
-    """
-    if project_dir is None:
-        project_dir = Path.cwd()
-
-    # Claude Code environment detection
-    if is_claude_code_environment(ai):
-        console.print("[cyan]Claude Code detected[/cyan]")
-        console.print("[yellow]Execute: /speckit.implement[/yellow]")
-        console.print("[dim]This will use the executor subagent for implementation[/dim]")
-        return
-
-    # Check if .specify/docs/ exists, if not, run sync automatically
-    docs_dir = project_dir / ".specify" / "docs"
-    if not docs_dir.exists():
-        console.print("[yellow]Note:[/yellow] `.specify/docs/` not found. Running initial sync...")
-        try:
-            # Detect source directory
-            source_dir = detect_source_directory(project_dir)
-            if source_dir:
-                # Generate base documentation
-                count = sync_directory_docs(source_dir, docs_dir, auto=True)
-                console.print(f"[green]✓[/green] Generated {count} documentation file(s)")
-            else:
-                console.print("[yellow]Warning:[/yellow] Could not detect source directory. Skipping sync.")
-        except Exception as e:
-            console.print(f"[yellow]Warning:[/yellow] Auto-sync failed: {e}")
-            console.print("[dim]Continuing with implementation...[/dim]")
-
-    if ai:
-        # Single agent execution
-        console.print(f"[cyan]Executing implementation with {AGENT_CONFIG[ai]['name']}...[/cyan]")
-
-        # Check if agent is installed, if not, auto-install
-        ensure_agent_installed(ai, project_dir)
-
-        # Claude Code: async subagent will handle doc updates automatically
-        if ai == "claude":
-            console.print("[dim]Note: Documentation will be updated automatically during implementation[/dim]")
-
-        # Execute agent with implement command
-        executor = AgentExecutor(ai, project_dir)
-        output_path = executor.execute("implement")
-
-        # Non-Claude agents: fallback to batch update
-        if ai != "claude":
-            console.print("\n[cyan]Recording implementation changes...[/cyan]")
-            updated_count = record_implementation_changes(project_dir)
-            if updated_count > 0:
-                console.print(f"[green]✓[/green] Updated {updated_count} documentation file(s)")
-            else:
-                console.print("[dim]No documentation updates needed[/dim]")
-
-        console.print("[green]✓[/green] Implementation completed successfully")
-        console.print(f"[dim]Output: {output_path}[/dim]")
-    else:
-        # Interactive selection
-        selected_agent = select_agent_interactive()
-
-        # Execute with selected agent
-        ensure_agent_installed(selected_agent, project_dir)
-
-        # Claude Code: async subagent will handle doc updates automatically
-        if selected_agent == "claude":
-            console.print("[dim]Note: Documentation will be updated automatically during implementation[/dim]")
-
-        executor = AgentExecutor(selected_agent, project_dir)
-        output_path = executor.execute("implement")
-
-        # Non-Claude agents: fallback to batch update
-        if selected_agent != "claude":
-            console.print("\n[cyan]Recording implementation changes...[/cyan]")
-            updated_count = record_implementation_changes(project_dir)
-            if updated_count > 0:
-                console.print(f"[green]✓[/green] Updated {updated_count} documentation file(s)")
-            else:
-                console.print("[dim]No documentation updates needed[/dim]")
-
-        console.print("[green]✓[/green] Implementation completed successfully")
-        console.print(f"[dim]Output: {output_path}[/dim]")
 
 @app.command()
 def workflow(
@@ -2927,8 +2766,8 @@ def workflow(
     Execute complete SDD workflow: constitution → specify → design → plan → tasks → implement
 
     Examples:
-        specify-ex workflow "Add user authentication" --ai claude
-        specify-ex workflow "Add dark mode"
+        grove workflow "Add user authentication" --ai claude
+        grove workflow "Add dark mode"
     """
     if project_dir is None:
         project_dir = Path.cwd()
@@ -3012,15 +2851,15 @@ def sync(
     auto: bool = typer.Option(False, "--auto", help="Auto-generate/overwrite all docs"),
 ):
     """
-    Sync project documentation to .specify/docs/
+    Sync project documentation to .grove/docs/
 
     Automatically generates hierarchical documentation for your source code.
     Each directory gets index.md (structure), README.md (overview), and {filename}.md (details).
 
     Examples:
-        specify-ex sync
-        specify-ex sync --src src
-        specify-ex sync --auto
+        grove sync
+        grove sync --src src
+        grove sync --auto
     """
     if project_dir is None:
         project_dir = Path.cwd()
@@ -3028,7 +2867,7 @@ def sync(
     # Claude Code environment detection (environment variable only, no --ai parameter)
     if os.getenv("CLAUDE_CODE_VERSION") is not None:
         console.print("[cyan]Claude Code detected[/cyan]")
-        console.print("[yellow]Execute: /speckit.sync[/yellow]")
+        console.print("[yellow]Execute: /grove.sync[/yellow]")
         console.print("[dim]This will use the sync-knowledge skill[/dim]")
         return
 
@@ -3050,7 +2889,7 @@ def sync(
     console.print(f"  Source directory: {src_dir.relative_to(project_dir)}")
 
     # Create documentation directory
-    docs_dir = project_dir / ".specify" / "docs" / src_dir.name
+    docs_dir = project_dir / ".grove" / "docs" / src_dir.name
     console.print(f"  Documentation output: {docs_dir.relative_to(project_dir)}\n")
 
     # Sync documentation

@@ -1,8 +1,27 @@
 [project]
-name = "specify-ex-cli"
-version = "0.2.0"
-description = "Specify EX CLI - Extended version with multi-language support. Part of GitHub Spec Kit EX. A tool to bootstrap your projects for Spec-Driven Development (SDD)."
+name = "grove-cli"
+version = "0.0.1"
+description = "AI-powered development toolkit with built-in quality assurance: Spec-Driven Development × TDD × AI Auto-Review"
+readme = "README.md"
 requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Cardene"},
+]
+keywords = [
+    "ai", "development", "tdd", "quality-assurance",
+    "spec-driven", "code-review", "automation", "cli"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+]
 dependencies = [
     "typer",
     "rich",
@@ -13,17 +32,24 @@ dependencies = [
     "pyyaml",
 ]
 
+[project.urls]
+Homepage = "https://github.com/cardene/grove"
+Repository = "https://github.com/cardene/grove"
+Issues = "https://github.com/cardene/grove/issues"
+Changelog = "https://github.com/cardene/grove/blob/main/CHANGELOG.md"
+
 [project.scripts]
-specify-ex = "specify_cli:main"
+grove = "grove_cli:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/specify_cli"]
+packages = ["src/grove_cli"]
 
 [tool.hatch.build.targets.wheel.shared-data]
-"templates" = "share/specify-ex-cli/templates"
-"templates/agent-configs" = "share/specify-ex-cli/templates/agent-configs"
+"templates" = "share/grove-cli/templates"
+"templates/agent-configs" = "share/grove-cli/templates/agent-configs"
+"scripts" = "share/grove-cli/scripts"
 

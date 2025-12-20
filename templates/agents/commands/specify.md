@@ -1,11 +1,12 @@
 ---
 description: Create or update the feature specification from a natural language feature description.
-handoffs: 
+argument-hint: "<feature description>"
+handoffs:
   - label: Build Technical Plan
-    agent: speckit.plan
+    agent: grove.plan
     prompt: Create a plan for the spec. I am building with...
   - label: Clarify Spec Requirements
-    agent: speckit.clarify
+    agent: grove.clarify
     prompt: Clarify specification requirements
     send: true
 scripts:
@@ -23,11 +24,26 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-The text the user typed after `/speckit.specify` in the triggering message **is** the feature description. Assume you always have it available in this conversation even if `{ARGS}` appears literally below. Do not ask the user to repeat it unless they provided an empty command.
+The text the user typed after `/grove.specify` in the triggering message **is** the feature description. Assume you always have it available in this conversation even if `{ARGS}` appears literally below. Do not ask the user to repeat it unless they provided an empty command.
 
 Given that feature description, do this:
 
-1. **Generate a concise short name** (2-4 words) for the branch:
+1. **Load the spec template and check template usage setting**:
+   - **First**, read `.grove/templates/spec-template.md` (the master template)
+   - **Check YAML frontmatter** for `enabled` field:
+     - If `enabled: true`: Template contains sample content that can be used as reference for structure and guidance
+     - If `enabled: false` or missing: Template contains only placeholder structure
+
+   **Decision logic**:
+   - If `enabled: true` → Ask if user wants to:
+     a) Use template content as-is (recommended for quick start)
+     b) Use template as reference and customize based on feature description
+     c) Start from scratch using only template structure
+   - If `enabled: false` or missing → Create from scratch using template structure only
+
+   **Note**: Unlike constitution, specs are always created fresh for each feature, so no existing file check is needed.
+
+2. **Generate a concise short name** (2-4 words) for the branch:
    - Analyze the feature description and extract the most meaningful keywords
    - Create a 2-4 word short name that captures the essence of the feature
    - Use action-noun format when possible (e.g., "add-user-auth", "fix-payment-bug")
@@ -39,7 +55,7 @@ Given that feature description, do this:
      - "Create a dashboard for analytics" → "analytics-dashboard"
      - "Fix payment processing timeout bug" → "fix-payment-timeout"
 
-2. **Check for existing branches before creating new one**:
+3. **Check for existing branches before creating new one**:
 
    a. First, fetch all remote branches to ensure we have the latest information:
 
@@ -71,12 +87,16 @@ Given that feature description, do this:
    - The JSON output will contain BRANCH_NAME and SPEC_FILE paths
    - For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot")
 
-3. Load `templates/spec-template.md` to understand required sections.
-
 4. Follow this execution flow:
 
     1. Parse user description from Input
-       If empty: ERROR "No feature description provided"
+       If empty:
+         - If template has `enabled: true`: Ask user to choose:
+           a) Use template content as-is (recommended for quick start)
+           b) Use template as reference and customize based on feature description
+           c) Start from scratch with your own feature description
+         - If template has `enabled: false` or missing: Ask user to provide feature description
+       If provided: proceed with feature description
     2. Extract key concepts from description
        Identify: actors, actions, data, constraints
     3. For unclear aspects:
@@ -139,7 +159,7 @@ Given that feature description, do this:
       
       ## Notes
       
-      - Items marked incomplete require spec updates before `/speckit.clarify` or `/speckit.plan`
+      - Items marked incomplete require spec updates before `/grove.clarify` or `/grove.plan` or `/grove.design`
       ```
 
    b. **Run Validation Check**: Review the spec against each checklist item:
@@ -192,8 +212,6 @@ Given that feature description, do this:
         9. Re-run validation after all clarifications are resolved
 
    d. **Update Checklist**: After each validation iteration, update the checklist file with current pass/fail status
-
-7. Report completion with branch name, spec file path, checklist results, and readiness for the next phase (`/speckit.clarify` or `/speckit.plan`).
 
 **NOTE:** The script creates and checks out the new branch and initializes the spec file before writing.
 

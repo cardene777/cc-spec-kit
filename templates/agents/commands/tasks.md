@@ -1,12 +1,13 @@
 ---
 description: Generate an actionable, dependency-ordered tasks.md for the feature based on available design artifacts.
-handoffs: 
+argument-hint: ""
+handoffs:
   - label: Analyze For Consistency
-    agent: speckit.analyze
+    agent: grove.analyze
     prompt: Run a project analysis for consistency
     send: true
   - label: Implement Project
-    agent: speckit.implement
+    agent: grove.implement
     prompt: Start the implementation in phases
     send: true
 scripts:
@@ -44,11 +45,22 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 4. **Generate tasks.md**: Use `templates/tasks-template.md` as structure, fill with:
    - Correct feature name from plan.md
+   - **Add metadata section at the top** (after feature name):
+     ```markdown
+     ---
+     **Implemented By**: {Current AI Agent Name} (claude/codex/unknown)
+     **Created**: {YYYY-MM-DD HH:MM:SS}
+     ---
+     ```
+   - To detect current AI Agent:
+     - Run `claude --help` or `code --help` → If success: AI Agent = "claude"
+     - Run `codex --help` → If success: AI Agent = "codex"
+     - Otherwise: AI Agent = "unknown"
    - Phase 1: Setup tasks (project initialization)
    - Phase 2: Foundational tasks (blocking prerequisites for all user stories)
    - Phase 3+: One phase per user story (in priority order from spec.md)
    - Each phase includes: story goal, independent test criteria, tests (if requested), implementation tasks
-   - **Each task must include TDD checklist** (see TDD Task Format below)
+   - **Each task must include TDD checklist AND review sub-checks** (see Task Format with Sub-checks below)
    - Final Phase: Polish & cross-cutting concerns
    - All tasks must follow the strict checklist format (see Task Generation Rules below)
    - Clear file paths for each task
@@ -63,6 +75,32 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Independent test criteria for each story
    - Suggested MVP scope (typically just User Story 1)
    - Format validation: Confirm ALL tasks follow the checklist format (checkbox, ID, labels, file paths)
+
+6. **Next Steps Section**: After the report, ALWAYS output the following section exactly as shown:
+
+   ```markdown
+   ## Next Steps
+
+   Task file has been generated. To start implementation, run the following command.
+
+   ### Start Implementation
+
+   ```bash
+   /grove.implement
+   ```
+
+   Execute all tasks sequentially following the TDD cycle (Red→Green→Refactor).
+
+   ### Verify Task Consistency (Optional)
+
+   ```bash
+   /grove.analyze
+   ```
+
+   Check consistency across constitution, specifications, plan, and tasks.
+   ```
+
+   **IMPORTANT**: This section must be displayed in the user's configured language (ja/en from config.json).
 
 Context for task generation: {ARGS}
 
@@ -140,14 +178,18 @@ Every task MUST strictly follow this format:
   - Each phase should be a complete, independently testable increment
 - **Final Phase**: Polish & Cross-Cutting Concerns
 
-### TDD Task Format
+### Task Format with Sub-checks
 
-**IMPORTANT**: Each task should include a TDD checklist for verification. This checklist is NOT a step-by-step procedure, but a **confirmation checklist** to verify that TDD was properly executed.
+**IMPORTANT**: Each task should include:
+1. **TDD checklist** - Confirmation checklist to verify TDD was properly executed
+2. **Review sub-checks** - Self Review and Cross Review tracking
 
 **Task Template**:
 
 ```markdown
 ## Task: [Task Description]
+
+- [ ] T001 Create database connection logic in src/db.py
 
 ### Related Spec
 - spec/[filename].md#[section]
@@ -157,14 +199,23 @@ Every task MUST strictly follow this format:
 - [ ] Green: Implemented minimal code to pass tests
 - [ ] Refactor: Cleaned up code while keeping tests green
 
+### Review
+- [ ] Self Review: Implementation environment AI automatic verification completed
+- [ ] Cross Review: Other AI Agent additional verification completed
+
 ### Constraints
 - Do not modify the spec
 - Do not touch other tasks
 ```
 
 **Key Points**:
-- The TDD checklist is checked **once per task** upon completion
-- It verifies that the TDD cycle (Red→Green→Refactor) was executed during implementation
-- It is NOT a step-by-step guide, but a post-implementation confirmation
-- If a checklist item cannot be completed, document the reason
-- The checklist confirms observability: "Was TDD actually executed?"
+- **Review Sub-checks**:
+  - Each task has 2 sub-checks: Self Review and Cross Review
+  - Self Review: Checked by `/grove.implement` after task completion (automatic)
+  - Cross Review: Checked by `/grove.review` from different AI Agent (manual)
+- **TDD Checklist**:
+  - The TDD checklist is checked **once per task** upon completion
+  - It verifies that the TDD cycle (Red→Green→Refactor) was executed during implementation
+  - It is NOT a step-by-step guide, but a post-implementation confirmation
+  - If a checklist item cannot be completed, document the reason
+  - The checklist confirms observability: "Was TDD actually executed?"

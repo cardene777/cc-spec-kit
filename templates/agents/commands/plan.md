@@ -1,12 +1,13 @@
 ---
 description: Execute the implementation planning workflow using the plan template to generate design artifacts.
-handoffs: 
+argument-hint: ""
+handoffs:
   - label: Create Tasks
-    agent: speckit.tasks
+    agent: grove.tasks
     prompt: Break the plan into tasks
     send: true
   - label: Create Checklist
-    agent: speckit.checklist
+    agent: grove.checklist
     prompt: Create a checklist for the following domain...
 scripts:
   sh: scripts/bash/setup-plan.sh --json
@@ -31,12 +32,12 @@ You **MUST** consider the user input before proceeding (if not empty).
 2. **Load context**: Read FEATURE_SPEC and `/memory/constitution.md`. Load IMPL_PLAN template (already copied).
 
 3. **Load design specifications (if available)**:
-   - Check for `.specify/design/` directory
+   - Check for `.grove/design/` directory
    - If exists, read design specifications:
-     - `.specify/design/README.md` (design overview)
-     - `.specify/design/design-system.md` (colors, typography, spacing)
-     - `.specify/design/components/` (component specs and code)
-     - `.specify/design/layouts/` (layout specs and code)
+     - `.grove/design/README.md` (design overview)
+     - `.grove/design/design-system.md` (colors, typography, spacing)
+     - `.grove/design/components/` (component specs and code)
+     - `.grove/design/layouts/` (layout specs and code)
    - Extract design constraints:
      - Required UI framework (React, Vue, Angular, etc.)
      - CSS methodology (Tailwind, CSS Modules, CSS-in-JS, etc.)
