@@ -37,6 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LICENSE file to properly credit original Spec Kit authors (GitHub, Inc.)
 - Environment variable name in documentation (SPEC_KIT_SRC → GROVE_SRC)
 - Directory name issue (removed trailing space from "memory " → "memory")
+- Language template organization during `grove init`
+  - Selected language files (constitution-template.md, spec-template.md) are now correctly placed in `.grove/templates/` directory
+  - Removed duplicate language subdirectories (`.grove/templates/en/`, `.grove/templates/ja/`)
+  - Removed duplicate template files that were created in both root and subdirectories
+- Template confirmation options now use English-only format for better cross-agent compatibility
 
 ### Changed
 
