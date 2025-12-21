@@ -31,12 +31,18 @@ Follow this execution flow:
      - If Read returns error (file not found) → file does NOT exist
 
    **Decision logic**:
-   - If `.grove/memory/constitution.md` exists → Ask user how to update (modify, replace, etc.)
-   - If `.grove/memory/constitution.md` does NOT exist AND `enabled: true` → Ask if user wants to:
-     a) Use template content as-is (recommended for quick start)
-     b) Use template as reference and customize
-     c) Start from scratch
-   - If `.grove/memory/constitution.md` does NOT exist AND `enabled: false` → Create from scratch using placeholder structure
+   - If `.grove/memory/constitution.md` exists → **MUST ask user for confirmation. DO NOT proceed without user choice** (use AskUserQuestion tool if available):
+     - Use existing constitution as-is
+     - Use existing constitution as base and improve
+     - Ignore existing constitution and create from scratch
+     - Keep current constitution and cancel this request
+   - If `.grove/memory/constitution.md` does NOT exist AND `enabled: true` → **STOP and ask user which approach to use. NEVER use template without confirmation** (use AskUserQuestion tool if available):
+     - Use template as-is
+     - Use template as base and improve
+     - Ignore template and create from scratch
+     - Cancel this request
+     - **IMPORTANT**: Wait for user's explicit choice before proceeding
+   - If `.grove/memory/constitution.md` does NOT exist AND `enabled: false` → Create from scratch using placeholder structure (no template content available)
 
    - Identify every placeholder token of the form `[ALL_CAPS_IDENTIFIER]`
    **IMPORTANT**: The user might require less or more principles than the ones used in the template. If a number is specified, respect that - follow the general template. You will update the doc accordingly.

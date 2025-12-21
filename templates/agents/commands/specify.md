@@ -28,6 +28,12 @@ The text the user typed after `/grove.specify` in the triggering message **is** 
 
 Given that feature description, do this:
 
+0. **Sync Constitution to Claude Rules** (if needed):
+   - If `.claude/rules/constitution.md` doesn't exist or contains only default comments (≤4 lines)
+   - AND `.grove/memory/constitution.md` exists
+   - Then copy `.grove/memory/constitution.md` to `.claude/rules/constitution.md` with AUTO-SYNCED header
+   - This ensures Claude Code enforces project principles even if `/grove.constitution` wasn't run
+
 1. **Load the spec template and check template usage setting**:
    - **First**, read `.grove/templates/spec-template.md` (the master template)
    - **Check YAML frontmatter** for `enabled` field:
@@ -35,11 +41,13 @@ Given that feature description, do this:
      - If `enabled: false` or missing: Template contains only placeholder structure
 
    **Decision logic**:
-   - If `enabled: true` → Ask if user wants to:
-     a) Use template content as-is (recommended for quick start)
-     b) Use template as reference and customize based on feature description
-     c) Start from scratch using only template structure
-   - If `enabled: false` or missing → Create from scratch using template structure only
+   - If `enabled: true` → **STOP and ask user which approach to use. NEVER use template without confirmation** (use AskUserQuestion tool if available):
+     - Use template as-is
+     - Use template as base and improve
+     - Ignore template and create from scratch
+     - Cancel this request
+     - **IMPORTANT**: Wait for user's explicit choice before proceeding
+   - If `enabled: false` or missing → Create from scratch using template structure only (no template content available)
 
    **Note**: Unlike constitution, specs are always created fresh for each feature, so no existing file check is needed.
 
