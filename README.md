@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/cardene/grove/stargazers"><img src="https://img.shields.io/github/stars/cardene/grove?style=social" alt="GitHub stars"/></a>
-    <a href="https://github.com/cardene/grove/blob/main/LICENSE"><img src="https://img.shields.io/github/license/cardene/grove" alt="License: MIT"/></a>
+    <a href="https://github.com/cardene777/grove/stargazers"><img src="https://img.shields.io/github/stars/cardene777/grove?style=social" alt="GitHub stars"/></a>
+    <a href="https://github.com/cardene777/grove/blob/main/LICENSE"><img src="https://img.shields.io/github/license/cardene777/grove" alt="License: MIT"/></a>
     <a href="./README-ja.md">日本語</a>
 </p>
 
@@ -105,7 +105,7 @@ Reduces wait time and improves development speed.
 ### One-time Install (Recommended)
 
 ```bash
-uv tool install grove-cli --from git+https://github.com/cardene/grove.git
+uv tool install grove-cli --from git+https://github.com/cardene777/grove.git
 ```
 
 ### Initialize Project
@@ -124,7 +124,7 @@ grove init --here --ai claude --lang en
 ### Upgrade
 
 ```bash
-uv tool install grove-cli --force --from git+https://github.com/cardene/grove.git
+uv tool install grove-cli --force --from git+https://github.com/cardene777/grove.git
 ```
 
 ## 🎬 Usage
@@ -409,9 +409,9 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 
 ## 💬 Support
 
-- **Bug Reports**: [GitHub Issues](https://github.com/cardene/grove/issues)
-- **Feature Requests**: [GitHub Issues](https://github.com/cardene/grove/issues)
-- **Questions/Discussion**: [GitHub Discussions](https://github.com/cardene/grove/discussions)
+- **Bug Reports**: [GitHub Issues](https://github.com/cardene777/grove/issues)
+- **Feature Requests**: [GitHub Issues](https://github.com/cardene777/grove/issues)
+- **Questions/Discussion**: [GitHub Discussions](https://github.com/cardene777/grove/discussions)
 
 ## 🙏 Acknowledgements
 

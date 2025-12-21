@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local testing script for spec-kit-ex
+# Local testing script for Grove
 # Usage: ./scripts/bash/test-local.sh [project-name] [ai] [script-type] [lang]
 # Example: ./scripts/bash/test-local.sh test-claude claude sh ja
 

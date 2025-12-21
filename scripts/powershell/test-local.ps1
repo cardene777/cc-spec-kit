@@ -1,4 +1,4 @@
-# Local testing script for spec-kit-ex
+# Local testing script for Grove
 # Usage: .\scripts\powershell\test-local.ps1 [project-name] [ai] [script-type] [lang]
 # Example: .\scripts\powershell\test-local.ps1 test-claude claude ps ja
 

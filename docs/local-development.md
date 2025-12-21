@@ -7,7 +7,7 @@ This guide shows how to iterate on the `specify` CLI locally without publishing 
 ## 1. Clone and Switch Branches
 
 ```bash
-git clone https://github.com/cardene/grove.git
+git clone https://github.com/cardene777/grove.git
 cd grove
 # Work on a feature branch
 git checkout -b your-feature-branch
@@ -60,7 +60,7 @@ You can also point uvx at a specific branch without merging:
 ```bash
 # Push your working branch first
 git push origin your-feature-branch
-uvx --from git+https://github.com/cardene/grove.git@your-feature-branch grove init demo-branch-test --script ps
+uvx --from git+https://github.com/cardene777/grove.git@your-feature-branch grove init demo-branch-test --script ps
 ```
 
 ### 4a. Absolute Path uvx (Run From Anywhere)
@@ -75,8 +75,8 @@ uvx --from /mnt/c/GitHub/grove grove init demo-anywhere --ai copilot --ignore-ag
 Set an environment variable for convenience:
 
 ```bash
-export SPEC_KIT_SRC=/mnt/c/GitHub/grove
-uvx --from "$SPEC_KIT_SRC" grove init demo-env --ai copilot --ignore-agent-tools --script ps
+export GROVE_SRC=/mnt/c/GitHub/grove
+uvx --from "$GROVE_SRC" grove init demo-env --ai copilot --ignore-agent-tools --script ps
 ```
 
 (Optional) Define a shell function:

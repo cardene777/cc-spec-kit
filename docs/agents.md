@@ -200,4 +200,4 @@ If slash commands aren't showing up:
 
 ---
 
-**Need help?** [Open an issue](https://github.com/cardene/grove/issues) or visit [GitHub Discussions](https://github.com/cardene/grove/discussions)
+**Need help?** [Open an issue](https://github.com/cardene777/grove/issues) or visit [GitHub Discussions](https://github.com/cardene777/grove/discussions)

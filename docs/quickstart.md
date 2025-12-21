@@ -10,23 +10,23 @@ This guide will help you get started with Spec-Driven Development using Grove.
 > [!TIP]
 > **Context Awareness**: Grove commands automatically detect the active feature based on your current Git branch (e.g., `001-feature-name`). To switch between different specifications, simply switch Git branches.
 
-### Step 1: Install Specify
+### Step 1: Install Grove
 
 **In your terminal**, run the `specify` CLI command to initialize your project:
 
 ```bash
 # Create a new project directory
-uvx --from git+https://github.com/cardene/grove.git grove init <PROJECT_NAME>
+uvx --from git+https://github.com/cardene777/grove.git grove init <PROJECT_NAME>
 
 # OR initialize in the current directory
-uvx --from git+https://github.com/cardene/grove.git grove init .
+uvx --from git+https://github.com/cardene777/grove.git grove init .
 ```
 
 Pick script type explicitly (optional):
 
 ```bash
-uvx --from git+https://github.com/cardene/grove.git grove init <PROJECT_NAME> --script ps  # Force PowerShell
-uvx --from git+https://github.com/cardene/grove.git grove init <PROJECT_NAME> --script sh  # Force POSIX shell
+uvx --from git+https://github.com/cardene777/grove.git grove init <PROJECT_NAME> --script ps  # Force PowerShell
+uvx --from git+https://github.com/cardene777/grove.git grove init <PROJECT_NAME> --script sh  # Force POSIX shell
 ```
 
 ### Step 2: Define Your Constitution
@@ -161,4 +161,4 @@ Finally, implement the solution:
 
 - Read the [complete methodology](../spec-driven.md) for in-depth guidance
 - Check out [more examples](../templates) in the repository
-- Explore the [source code on GitHub](https://github.com/cardene/grove)
+- Explore the [source code on GitHub](https://github.com/cardene777/grove)

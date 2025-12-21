@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/cardene/grove/stargazers"><img src="https://img.shields.io/github/stars/cardene/grove?style=social" alt="GitHub stars"/></a>
-    <a href="https://github.com/cardene/grove/blob/main/LICENSE"><img src="https://img.shields.io/github/license/cardene/grove" alt="License: MIT"/></a>
+    <a href="https://github.com/cardene777/grove/stargazers"><img src="https://img.shields.io/github/stars/cardene777/grove?style=social" alt="GitHub stars"/></a>
+    <a href="https://github.com/cardene777/grove/blob/main/LICENSE"><img src="https://img.shields.io/github/license/cardene777/grove" alt="License: MIT"/></a>
     <a href="./README.md">English</a>
 </p>
 
@@ -105,7 +105,7 @@ T003実装完了 → Self Review起動（バックグラウンド）
 ### 1回だけインストール（推奨）
 
 ```bash
-uv tool install grove-cli --from git+https://github.com/cardene/grove.git
+uv tool install grove-cli --from git+https://github.com/cardene777/grove.git
 ```
 
 ### プロジェクト初期化
@@ -124,7 +124,7 @@ grove init --here --ai claude --lang ja
 ### アップグレード
 
 ```bash
-uv tool install grove-cli --force --from git+https://github.com/cardene/grove.git
+uv tool install grove-cli --force --from git+https://github.com/cardene777/grove.git
 ```
 
 ## 🎬 使い方
@@ -409,9 +409,9 @@ A: はい。`/grove.implement --skip-self-review`でSelf Reviewをスキップ�
 
 ## 💬 サポート
 
-- **バグ報告**: [GitHub Issues](https://github.com/cardene/grove/issues)
-- **機能リクエスト**: [GitHub Issues](https://github.com/cardene/grove/issues)
-- **質問・議論**: [GitHub Discussions](https://github.com/cardene/grove/discussions)
+- **バグ報告**: [GitHub Issues](https://github.com/cardene777/grove/issues)
+- **機能リクエスト**: [GitHub Issues](https://github.com/cardene777/grove/issues)
+- **質問・議論**: [GitHub Discussions](https://github.com/cardene777/grove/discussions)
 
 ## 🙏 謝辞
 

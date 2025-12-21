@@ -8,7 +8,7 @@
 
 | What to Upgrade | Command | When to Use |
 |----------------|---------|-------------|
-| **CLI Tool Only** | `uv tool install specify-cli --force --from git+https://github.com/cardene/grove.git` | Get latest CLI features without touching project files |
+| **CLI Tool Only** | `uv tool install specify-cli --force --from git+https://github.com/cardene777/grove.git` | Get latest CLI features without touching project files |
 | **Project Files** | `grove init --here --force --ai <your-agent>` | Update slash commands, templates, and scripts in your project |
 | **Both** | Run CLI upgrade, then project update | Recommended for major version updates |
 
@@ -21,7 +21,7 @@ The CLI tool (`specify`) is separate from your project files. Upgrade it to get 
 ### If you installed with `uv tool install`
 
 ```bash
-uv tool install specify-cli --force --from git+https://github.com/cardene/grove.git
+uv tool install specify-cli --force --from git+https://github.com/cardene777/grove.git
 ```
 
 ### If you use one-shot `uvx` commands
@@ -29,7 +29,7 @@ uv tool install specify-cli --force --from git+https://github.com/cardene/grove.
 No upgrade needed—`uvx` always fetches the latest version. Just run your commands as normal:
 
 ```bash
-uvx --from git+https://github.com/cardene/grove.git grove init --here --ai copilot
+uvx --from git+https://github.com/cardene777/grove.git grove init --here --ai copilot
 ```
 
 ### Verify the upgrade
@@ -165,7 +165,7 @@ Restart your IDE to refresh the command list.
 
 ```bash
 # Upgrade CLI (if using persistent install)
-uv tool install specify-cli --force --from git+https://github.com/cardene/grove.git
+uv tool install specify-cli --force --from git+https://github.com/cardene777/grove.git
 
 # Update project files to get new commands
 grove init --here --force --ai copilot
@@ -182,7 +182,7 @@ cp .grove/memory/constitution.md /tmp/constitution-backup.md
 cp -r .grove/templates /tmp/templates-backup
 
 # 2. Upgrade CLI
-uv tool install specify-cli --force --from git+https://github.com/cardene/grove.git
+uv tool install specify-cli --force --from git+https://github.com/cardene777/grove.git
 
 # 3. Update project
 grove init --here --force --ai copilot
@@ -383,7 +383,7 @@ If not found, reinstall:
 
 ```bash
 uv tool uninstall specify-cli
-uv tool install specify-cli --from git+https://github.com/cardene/grove.git
+uv tool install specify-cli --from git+https://github.com/cardene777/grove.git
 ```
 
 ### "Do I need to run specify every time I open my project?"
@@ -439,6 +439,6 @@ Grove follows semantic versioning for major releases. The CLI and project files 
 After upgrading:
 
 - **Test new slash commands:** Run `/grove.constitution` or another command to verify everything works
-- **Review release notes:** Check [GitHub Releases](https://github.com/cardene/grove/releases) for new features and breaking changes
+- **Review release notes:** Check [GitHub Releases](https://github.com/cardene777/grove/releases) for new features and breaking changes
 - **Update workflows:** If new commands were added, update your team's development workflows
 - **Check documentation:** Visit [github.io/grove](https://github.github.io/grove/) for updated guides
