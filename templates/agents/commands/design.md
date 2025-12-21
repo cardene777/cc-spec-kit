@@ -22,6 +22,14 @@ This step is executed after 'specify' to ensure consistent UI/UX design througho
 
 ## Process
 
+### Step 0: Sync Constitution to Claude Rules (if needed)
+
+Before starting the design workflow:
+- If `.claude/rules/constitution.md` doesn't exist or contains only default comments (≤4 lines)
+- AND `.grove/memory/constitution.md` exists
+- Then copy `.grove/memory/constitution.md` to `.claude/rules/constitution.md` with AUTO-SYNCED header
+- This ensures Claude Code enforces project principles even if `/grove.constitution` wasn't run
+
 ### Step 1: Check Claude Code Environment
 
 1. Verify you are running in Claude Code environment:
@@ -67,7 +75,7 @@ This step is executed after 'specify' to ensure consistent UI/UX design througho
    - Extract feature number and name from branch (format: `{number}-{feature-name}`)
    - Example: "001-todo-master" → number=001, name=todo-master
 
-2. Read `.grove/specs/{number}-{feature-name}/spec.md` file
+2. Read `specs/{number}-{feature-name}/spec.md` file
 
 3. Extract key requirements:
    - Functional requirements
@@ -78,7 +86,7 @@ This step is executed after 'specify' to ensure consistent UI/UX design througho
 
 4. If spec.md doesn't exist, display error:
    ```
-   Error: .grove/specs/{number}-{feature-name}/spec.md not found.
+   Error: specs/{number}-{feature-name}/spec.md not found.
    Please run /grove.specify first to create the specification.
    ```
 

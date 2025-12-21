@@ -97,30 +97,37 @@ Given that feature description, do this:
 
 4. Follow this execution flow based on user's template choice from Step 1:
 
+    **CRITICAL: Never ask user for additional input after template choice is made.**
+    **CRITICAL: Regardless of template choice, you MUST always proceed to Step 5 to create spec.md file.**
+    **The primary goal is creating specs/<number>-<short-name>/spec.md, not just analyzing templates.**
+
     **If user chose "Use template as-is":**
     1. Use the template content directly without modification
-    2. Skip to Step 5 (Write the specification)
+    2. Proceed immediately to Step 5 (Write the specification)
 
     **If user chose "Use template as base and improve":**
-    1. Read the template file (.grove/templates/spec-template.md)
-    2. Analyze template quality and identify gaps:
-       - Missing sections (background, purpose, target users, scope, exclusions)
-       - Incomplete user scenarios (error flows, edge cases, accessibility)
-       - Missing non-functional requirements (security, reliability, observability, accessibility, localization)
-       - Insufficient data policies (retention, compliance, backup, deletion)
-       - Lack of business KPIs in success criteria
-       - Entity relationship constraints and policies
-       - Any hardcoded values that should be placeholders
-    3. If user provided feature description in $ARGUMENTS:
-       - Use analysis results to customize template for the specific feature
-       - Fill in sections based on description
-       - Add missing sections identified in analysis
-    4. If user did NOT provide feature description:
-       - Present analysis findings to user
-       - Propose specific improvements for each gap found
-       - Ask user if they want to apply all improvements or select specific ones
-       - Update template based on user's choice
-    5. Skip to Step 5 (Write the specification)
+    1. Read the template file (.grove/templates/spec-template.md) as the base
+    2. Check if user provided feature description in $ARGUMENTS:
+
+       **If feature description provided**:
+       - Replace placeholders with actual values based on description
+       - Customize user stories for the specific feature
+       - Add feature-specific requirements and success criteria
+
+       **If NO feature description provided**:
+       - Review template for quality improvements:
+         * Missing sections that would add value
+         * Better examples or clearer explanations
+         * More comprehensive edge cases
+         * Additional acceptance scenarios
+       - Add any valuable enhancements found
+       - Keep reasonable placeholders where feature-specific content is needed
+       - DO NOT ask user for feature description
+
+    3. **MANDATORY**: Proceed immediately to Step 5 (Write the specification)
+       - Do NOT stop at analysis
+       - Do NOT ask user for more input
+       - Always create the spec.md file
 
     **If user chose "Ignore template and create from scratch":**
     1. Parse user description from Input
@@ -241,6 +248,31 @@ Given that feature description, do this:
         9. Re-run validation after all clarifications are resolved
 
    d. **Update Checklist**: After each validation iteration, update the checklist file with current pass/fail status
+
+7. **Next Steps**: After completing the specification and validation, you MUST output the next steps. This is NOT optional.
+
+   Output EXACTLY:
+   ```
+   ## Next Steps
+
+   Specification has been created successfully!
+
+   Choose your next step:
+
+   Option 1 - Design UI/UX (recommended for user-facing features):
+   /grove.design
+
+   Option 2 - Create technical plan (backend/API features):
+   /grove.plan
+
+   If your feature has UI components, use /grove.design first.
+   Otherwise, proceed directly to /grove.plan.
+   ```
+
+   **IMPORTANT**:
+   - This next steps section is MANDATORY and must ALWAYS be displayed
+   - Both command options (/grove.design and /grove.plan) MUST be explicitly shown
+   - Do NOT replace with generic suggestions
 
 **NOTE:** The script creates and checks out the new branch and initializes the spec file before writing.
 

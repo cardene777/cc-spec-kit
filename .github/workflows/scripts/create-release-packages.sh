@@ -40,7 +40,7 @@ rewrite_paths() {
 generate_commands() {
   local agent=$1 ext=$2 arg_format=$3 output_dir=$4 script_variant=$5
   mkdir -p "$output_dir"
-  for template in templates/commands/*.md; do
+  for template in templates/agents/commands/*.md; do
     [[ -f "$template" ]] || continue
     local name description script_command agent_script_command body
     name=$(basename "$template" .md)
@@ -88,15 +88,23 @@ generate_commands() {
     
     # Apply other substitutions
     body=$(printf '%s\n' "$body" | sed "s/{ARGS}/$arg_format/g" | sed "s/__AGENT__/$agent/g" | rewrite_paths)
-    
+
+    # Determine output filename (codex uses plain name, others use grove.name)
+    local output_name
+    if [[ $agent == "codex" ]]; then
+      output_name="$name"
+    else
+      output_name="grove.$name"
+    fi
+
     case $ext in
       toml)
         body=$(printf '%s\n' "$body" | sed 's/\\/\\\\/g')
-        { echo "description = \"$description\""; echo; echo "prompt = \"\"\""; echo "$body"; echo "\"\"\""; } > "$output_dir/grove.$name.$ext" ;;
+        { echo "description = \"$description\""; echo; echo "prompt = \"\"\""; echo "$body"; echo "\"\"\""; } > "$output_dir/$output_name.$ext" ;;
       md)
-        echo "$body" > "$output_dir/grove.$name.$ext" ;;
+        echo "$body" > "$output_dir/$output_name.$ext" ;;
       agent.md)
-        echo "$body" > "$output_dir/grove.$name.$ext" ;;
+        echo "$body" > "$output_dir/$output_name.$ext" ;;
     esac
   done
 }
@@ -150,7 +158,13 @@ build_variant() {
     esac
   fi
   
-  [[ -d templates ]] && { mkdir -p "$SPEC_DIR/templates"; find templates -type f -not -path "templates/commands/*" -not -name "vscode-settings.json" -exec cp --parents {} "$SPEC_DIR"/ \; ; echo "Copied templates -> .grove/templates"; }
+  if [[ -d templates ]]; then
+    mkdir -p "$SPEC_DIR/templates"
+    # macOS compatible: use rsync instead of cp --parents
+    # Exclude agents/commands/* (generated per-agent) and vscode-settings.json
+    rsync -a --exclude 'agents/commands/' --exclude 'vscode-settings.json' templates/ "$SPEC_DIR/templates/"
+    echo "Copied templates -> .grove/templates"
+  fi
   
   # NOTE: We substitute {ARGS} internally. Outward tokens differ intentionally:
   #   * Markdown/prompt (claude, copilot, cursor-agent, opencode): $ARGUMENTS
@@ -160,7 +174,13 @@ build_variant() {
   case $agent in
     claude)
       mkdir -p "$base_dir/.claude/commands"
-      generate_commands claude md "\$ARGUMENTS" "$base_dir/.claude/commands" "$script" ;;
+      generate_commands claude md "\$ARGUMENTS" "$base_dir/.claude/commands" "$script"
+      # Copy Claude-specific files
+      [[ -f templates/agents/AGENTS.md ]] && cp templates/agents/AGENTS.md "$base_dir/AGENTS.md"
+      [[ -f templates/agents/claude/CLAUDE.md ]] && cp templates/agents/claude/CLAUDE.md "$base_dir/CLAUDE.md"
+      [[ -d templates/agents/claude/agents ]] && cp -r templates/agents/claude/agents "$base_dir/.claude/"
+      [[ -d templates/agents/claude/rules ]] && cp -r templates/agents/claude/rules "$base_dir/.claude/"
+      ;;
     gemini)
       mkdir -p "$base_dir/.gemini/commands"
       generate_commands gemini toml "{{args}}" "$base_dir/.gemini/commands" "$script"
@@ -189,7 +209,9 @@ build_variant() {
       generate_commands windsurf md "\$ARGUMENTS" "$base_dir/.windsurf/workflows" "$script" ;;
     codex)
       mkdir -p "$base_dir/.codex/prompts"
-      generate_commands codex md "\$ARGUMENTS" "$base_dir/.codex/prompts" "$script" ;;
+      generate_commands codex md "\$ARGUMENTS" "$base_dir/.codex/prompts" "$script"
+      [[ -f templates/agents/AGENTS.md ]] && cp templates/agents/AGENTS.md "$base_dir/AGENTS.md"
+      ;;
     kilocode)
       mkdir -p "$base_dir/.kilocode/workflows"
       generate_commands kilocode md "\$ARGUMENTS" "$base_dir/.kilocode/workflows" "$script" ;;

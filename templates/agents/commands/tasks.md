@@ -25,6 +25,12 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
+0. **Sync Constitution to Claude Rules** (if needed):
+   - If `.claude/rules/constitution.md` doesn't exist or contains only default comments (≤4 lines)
+   - AND `.grove/memory/constitution.md` exists
+   - Then copy `.grove/memory/constitution.md` to `.claude/rules/constitution.md` with AUTO-SYNCED header
+   - This ensures Claude Code enforces project principles even if `/grove.constitution` wasn't run
+
 1. **Setup**: Run `{SCRIPT}` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
 2. **Load design documents**: Read from FEATURE_DIR:
@@ -43,7 +49,17 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Create parallel execution examples per user story
    - Validate task completeness (each user story has all needed tasks, independently testable)
 
-4. **Generate tasks.md**: Use `templates/tasks-template.md` as structure, fill with:
+4. **Generate tasks.md**:
+
+   **CRITICAL FORMAT REQUIREMENTS**:
+   - You MUST use the exact task format defined in "Task Format with Sub-checks" section below
+   - Every task MUST have TDD Checklist and Review sub-checks
+   - Task IDs must be in brackets: [T001], NOT **T001** or T001:
+   - DO NOT use bold formatting for task IDs
+   - DO NOT create custom section headers like "Phase 0: Setup"
+   - Follow the template structure EXACTLY
+
+   Use `templates/tasks-template.md` as structure, fill with:
    - Correct feature name from plan.md
    - **Add metadata section at the top** (after feature name):
      ```markdown
@@ -68,39 +84,38 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Parallel execution examples per story
    - Implementation strategy section (MVP first, incremental delivery)
 
-5. **Report**: Output path to generated tasks.md and summary:
-   - Total task count
-   - Task count per user story
-   - Parallel opportunities identified
-   - Independent test criteria for each story
-   - Suggested MVP scope (typically just User Story 1)
-   - Format validation: Confirm ALL tasks follow the checklist format (checkbox, ID, labels, file paths)
+5. **Final Report and Next Steps**:
 
-6. **Next Steps Section**: After the report, ALWAYS output the following section exactly as shown:
+   a. First, output the report summary:
+      - Total task count
+      - Task count per user story
+      - Parallel opportunities identified
+      - Independent test criteria for each story
+      - Suggested MVP scope (typically just User Story 1)
+      - Format validation: Confirm ALL tasks follow the checklist format
 
-   ```markdown
-   ## Next Steps
+   b. **CRITICAL - MANDATORY Next Steps Output**:
+      After the report, you MUST output the next steps section. This is NOT optional.
 
-   Task file has been generated. To start implementation, run the following command.
+      Output EXACTLY:
+      ```
+      ## Next Steps
 
-   ### Start Implementation
+      Tasks have been created successfully!
 
-   ```bash
-   /grove.implement
-   ```
+      To start implementation, run:
+      /grove.implement
 
-   Execute all tasks sequentially following the TDD cycle (Red→Green→Refactor).
+      This will execute tasks following the TDD workflow (Red → Green → Refactor).
 
-   ### Verify Task Consistency (Optional)
+      Optional - Verify consistency:
+      /grove.analyze
+      ```
 
-   ```bash
-   /grove.analyze
-   ```
-
-   Check consistency across constitution, specifications, plan, and tasks.
-   ```
-
-   **IMPORTANT**: This section must be displayed in the user's configured language (ja/en from config.json).
+   **IMPORTANT**:
+   - This next steps section is MANDATORY and must ALWAYS be displayed
+   - Do NOT replace this with generic suggestions like "review with team" or "start from T001"
+   - The `/grove.implement` command MUST be explicitly shown
 
 Context for task generation: {ARGS}
 

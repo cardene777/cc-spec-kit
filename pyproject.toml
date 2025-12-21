@@ -1,6 +1,6 @@
 [project]
 name = "grove-cli"
-version = "0.1.1"
+version = "0.1.2"
 description = "AI-powered development toolkit with built-in quality assurance: Spec-Driven Development × TDD × AI Auto-Review"
 readme = "README.md"
 requires-python = ">=3.11"

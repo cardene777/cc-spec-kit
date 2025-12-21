@@ -26,6 +26,12 @@ Note: This clarification workflow is expected to run (and be completed) BEFORE i
 
 Execution steps:
 
+0. **Sync Constitution to Claude Rules** (if needed):
+   - If `.claude/rules/constitution.md` doesn't exist or contains only default comments (≤4 lines)
+   - AND `.grove/memory/constitution.md` exists
+   - Then copy `.grove/memory/constitution.md` to `.claude/rules/constitution.md` with AUTO-SYNCED header
+   - This ensures Claude Code enforces project principles even if `/grove.constitution` wasn't run
+
 1. Run `{SCRIPT}` from repo root **once** (combined `--json --paths-only` mode / `-Json -PathsOnly`). Parse minimal JSON payload fields:
    - `FEATURE_DIR`
    - `FEATURE_SPEC`

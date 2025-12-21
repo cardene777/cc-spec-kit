@@ -112,13 +112,23 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **Terraform**: `.terraform/`, `*.tfstate*`, `*.tfvars`, `.terraform.lock.hcl`
    - **Kubernetes/k8s**: `*.secret.yaml`, `secrets/`, `.kube/`, `kubeconfig*`, `*.key`, `*.crt`
 
-6. Parse tasks.md structure and extract:
+6. **Initial Documentation Sync** (if needed):
+   - Check if `.grove/docs/` directory exists using Read tool (try to read any file in it)
+   - **If not exists** (Read tool returns error):
+     - Display: `"📚 Initializing project documentation..."`
+     - Run `grove sync --auto` via Bash
+     - Wait for completion
+     - Display: `"✓ Documentation structure initialized"`
+   - **If exists**:
+     - Skip sync (documentation already exists)
+
+7. Parse tasks.md structure and extract:
    - **Task phases**: Setup, Tests, Core, Integration, Polish
    - **Task dependencies**: Sequential vs parallel execution rules
    - **Task details**: ID, description, file paths, parallel markers [P]
    - **Execution flow**: Order and dependency requirements
 
-7. **Execute implementation with background Self Review**:
+8. **Execute implementation with background Self Review**:
 
    **⚠️ CRITICAL ENFORCEMENT RULES**:
    - **NEVER skip any step for any reason** (including "simple" or "setup" tasks)
@@ -128,16 +138,17 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **MUST execute Self Review for every task** (unless `--skip-self-review` flag)
    - **VIOLATION = WORKFLOW FAILURE** - restart from current task
 
-   **7.1. Environment Detection and Initialization (once at start)**:
+   **8.1. Environment Detection and Initialization (once at start)**:
    - Run `claude --help` or `code --help` (exit code 0 → Claude Code environment)
    - Run `codex --help` (exit code 0 → Codex environment)
    - Otherwise → Unknown environment (proceed with sync review)
    - Check if `$ARGUMENTS` contains `--skip-self-review` to skip all Self Review steps
    - **Initialize background job tracking** (Claude Code only):
-     - Create empty dictionary to track: `background_jobs = {}`
+     - Create empty dictionary to track: `background_jobs = {}`  # Verification jobs
+     - Create empty dictionary to track: `doc_jobs = {}`         # Documentation jobs
      - Format: `{task_id: job_id}` for later retrieval
 
-   **7.2. For each task in current phase (execute in order)**:
+   **8.2. For each task in current phase (execute in order)**:
 
    **7.2.1. TDD Cycle (Red → Green → Refactor) - MANDATORY FOR ALL TASKS**:
 
@@ -216,7 +227,7 @@ Verify task {task_id} implementation and generate verification report.
    - Store job ID: `background_jobs[task_id] = job_id`
    - Display: `"🔄 {task_id} Self Review launched in background (job: {job_id})"`
    - Display: `"   Report will be saved to: reports/self-review/task-{task_id}.md"`
-   - **Immediately proceed to step 7.2.3** (don't wait for result)
+   - **Immediately proceed to step 8.2.2b** (don't wait for result)
 
    **B. Codex or Other Environments (SYNCHRONOUS EXECUTION)**:
 
@@ -227,16 +238,55 @@ Verify task {task_id} implementation and generate verification report.
      3. Calculate score (0-100) based on severity deductions
      4. Document issues if found
    - **Display verification results immediately**
-   - **Proceed to step 7.2.3 after completion**
+   - **Proceed to step 8.2.2b after completion**
 
-   **7.2.3. Update tasks.md (TDD checklist only for now)**:
+   **8.2.2b. Documentation Update (background execution) - Claude Code ONLY**:
+
+   **Claude Code Environment (BACKGROUND EXECUTION)**:
+
+   - **Launch documentation agent in background using Task tool**
+
+   **Launch Method**:
+   Use Task tool with the following parameters:
+
+   ```python
+   Task(
+       description="Update documentation for {task_id}",
+       prompt="""
+Update documentation for task {task_id}.
+
+**Input Parameters**:
+- task_id: {task_id}
+- task_description: {task_description from tasks.md}
+- task_files: [{list of file paths from task}]
+- source_dir: {auto-detected or from plan.md}
+- feature_dir: {FEATURE_DIR}
+
+Follow the documentation workflow defined in documentation.md.
+""",
+       subagent_type="documentation-agent",
+       run_in_background=True  # ← CRITICAL: Must run in background
+   )
+   ```
+
+   **After Launch**:
+   - Store job ID: `doc_jobs[task_id] = job_id`
+   - Display: `"📚 {task_id} Documentation update launched in background (job: {job_id})"`
+   - **Immediately proceed to step 8.2.3** (don't wait for result)
+
+   **Codex or Other Environments**:
+   - Skip documentation update (not supported in background)
+   - Documentation can be updated manually as needed
+   - **Proceed to step 8.2.3**
+
+   **8.2.3. Update tasks.md (TDD checklist only for now)**:
 
    **Claude Code Environment** (background Self Review):
    - Mark TDD checklist items as [X] (only if you showed test output):
      - [X] Red: Added new tests and confirmed they fail
      - [X] Green: Implemented minimal code to pass tests
      - [X] Refactor: Cleaned up code while keeping tests green
-   - **Leave Self Review checkbox UNCHECKED**: `[ ] Self Review: 実装環境AIによる自動検証完了`
+   - **Leave Self Review checkbox UNCHECKED**: `[ ] Self Review: Automated verification completed`
      - Results pending (running in background)
      - Will be updated in step 7.5 after collecting results
    - **DO NOT mark task checkbox [X] yet**
@@ -246,24 +296,25 @@ Verify task {task_id} implementation and generate verification report.
    **Codex or Other Environments** (synchronous Self Review):
    - Mark TDD checklist items as [X]
    - Mark "Self Review" sub-check with result (already obtained):
-     - `[x] Self Review: 実装環境AIによる自動検証完了 ✓ (Score: {score}/100)` if score ≥ 80
-     - `[ ] Self Review: 実装環境AIによる自動検証完了 ✗ (Score: {score}/100, {issue_count} issues)` if score < 80
+     - `[x] Self Review: Automated verification completed ✓ (Score: {score}/100)` if score ≥ 80
+     - `[ ] Self Review: Automated verification completed ✗ (Score: {score}/100, {issue_count} issues)` if score < 80
    - Mark task checkbox as [X] ONLY if:
      - TDD checklist all [X]
      - Self Review [x] (PASS)
    - **NEVER mark task [X] if Self Review failed**
    - Write updated tasks.md
 
-   **7.2.4. Progress Report (REQUIRED)**:
+   **8.2.4. Progress Report (REQUIRED)**:
 
-   **Claude Code Environment** (background Self Review):
+   **Claude Code Environment** (background Self Review + Documentation):
    - Display:
      ```
      Task {task_id} Implementation Complete:
      - Implementation: ✓ Complete
      - TDD Cycle: ✓ Red→Green→Refactor executed
-     - Self Review: 🔄 Running in background (job: {job_id})
-     - Status: ⏳ Awaiting Self Review results
+     - Self Review: 🔄 Running in background (job: {verification_job_id})
+     - Documentation: 🔄 Running in background (job: {doc_job_id})
+     - Status: ⏳ Awaiting background job results
      - Next: Moving to next task
      ```
    - Move to next task immediately
@@ -275,12 +326,13 @@ Verify task {task_id} implementation and generate verification report.
      - Implementation: ✓ Complete
      - TDD Cycle: ✓ Red→Green→Refactor executed
      - Self Review: {✓ PASS / ✗ FAIL} (Score: {score}/100)
+     - Documentation: Skipped (manual update available)
      - Issues Fixed: {count}
      - Status: {✓ COMPLETE / ✗ FAILED}
      ```
    - Move to next task
 
-   **7.3. Wait for Background Verification Completion and Parse Reports (after current phase completion)**:
+   **8.3. Wait for Background Job Completion and Parse Reports (after current phase completion)**:
 
    **When to execute**:
    - After all tasks in current phase have completed TDD implementation
@@ -307,6 +359,26 @@ Verify task {task_id} implementation and generate verification report.
      ```
 
    - Display: `"✓ All verification agents completed"`
+
+   **Step 1b: Wait for all documentation jobs to complete**:
+
+   - Display: `"⏳ Waiting for {len(doc_jobs)} documentation agents to complete..."`
+
+   - For each task_id in doc_jobs:
+     ```python
+     job_id = doc_jobs[task_id]
+
+     # Wait for job completion (ignore return value)
+     TaskOutput(
+         task_id=job_id,
+         block=True,      # Wait for completion
+         timeout=300000   # 5 minutes max
+     )
+     # Return value ignored - documentation files already written
+     ```
+
+   - Display: `"✓ All documentation agents completed"`
+   - Display: `"📚 Documentation updated in .grove/docs/"`
 
    **Step 2: Parse report files**:
 
@@ -447,11 +519,11 @@ Verify task {task_id} implementation and generate verification report.
    - For each task in current phase:
 
      **If review_results[task_id].status == "PASS"**:
-     - Mark "Self Review" as: `[x] Self Review: 実装環境AIによる自動検証完了 ✓ (Score: {score}/100)`
+     - Mark "Self Review" as: `[x] Self Review: Automated verification completed ✓ (Score: {score}/100)`
      - Mark task checkbox as: `[X]` (if not already marked)
 
      **If review_results[task_id].status == "FAIL"**:
-     - Mark "Self Review" as: `[ ] Self Review: 実装環境AIによる自動検証完了 ✗ (Score: {score}/100, {issue_count} issues remaining)`
+     - Mark "Self Review" as: `[ ] Self Review: Automated verification completed ✗ (Score: {score}/100, {issue_count} issues remaining)`
      - **DO NOT mark task checkbox** as [X]
 
    - Write updated tasks.md
@@ -537,7 +609,7 @@ Verify task {task_id} implementation and generate verification report.
    - Save report to: `FEATURE_DIR/reports/self-review/self-review-phase-{N}.md`
    - Display: `"📄 Self Review report saved: {report_path}"`
 
-   **7.7. Phase Summary Display**:
+   **8.7. Phase Summary Display**:
 
    - Display detailed summary table:
      ```
@@ -570,7 +642,7 @@ Verify task {task_id} implementation and generate verification report.
        3. After cross-review, run `/grove.fix` to address identified issues
      ```
 
-   - Clear background_jobs dictionary for next phase (if any)
+   - Clear background_jobs and doc_jobs dictionaries for next phase (if any)
 
    **Execution Rules - STRICTLY ENFORCED**:
    - **Phase-by-phase execution**: Complete each phase before moving to the next
@@ -578,28 +650,29 @@ Verify task {task_id} implementation and generate verification report.
    - **TDD per task + Self Review per phase**: Execute TDD for each task, collect Self Review results at phase end
    - **Task completion**: Mark task complete only after Self Review PASS
    - **File-based coordination**: Tasks affecting the same files must run sequentially
-   - **Background execution**: Claude Code launches verification agents in background for maximum parallelism
+   - **Background execution**: Claude Code launches verification and documentation agents in background for maximum parallelism
+   - **Documentation updates**: Real-time per task (background in Claude Code, skip in others)
    - **Batch fixes**: Auto-fix all failed tasks together after collecting results (no conflicts)
    - **NO SHORTCUTS**: Every task goes through full workflow regardless of perceived simplicity
    - **EVIDENCE REQUIRED**: Must show test output and verification scores, not just assertions
 
-8. Error handling:
+9. Error handling:
    - Halt execution if any non-parallel task fails
    - For parallel tasks [P], continue with successful tasks, report failed ones
    - Provide clear error messages with context for debugging
    - Suggest next steps if implementation cannot proceed
    - If Self Review fails after 3 attempts, continue to next task but report the failure
 
-9. Completion validation:
+10. Completion validation:
    - Verify all required tasks are completed
    - Check that implemented features match the original specification
    - Validate that tests pass and coverage meets requirements
    - Confirm the implementation follows the technical plan
    - Report final status with summary of completed work
 
-10. **Final Self Review Summary (all phases complete)**:
+11. **Final Self Review Summary (all phases complete)**:
 
-   **10.1 Aggregate All Phase Results**:
+   **11.1 Aggregate All Phase Results**:
    - Read `FEATURE_DIR/tasks.md`
    - Extract all task items with their Self Review status across all phases
    - Count:
@@ -613,7 +686,7 @@ Verify task {task_id} implementation and generate verification report.
      - Medium issues
      - Low issues
 
-   **10.2 Generate Consolidated Summary Report**:
+   **11.2 Generate Consolidated Summary Report**:
    - Create report directory: `FEATURE_DIR/reports/self-review/`
    - Extract metadata from tasks.md to get "Implemented By" AI Agent name
    - List all completed phases from tasks.md
@@ -734,7 +807,7 @@ Verify task {task_id} implementation and generate verification report.
    - Save report to: `FEATURE_DIR/reports/self-review/self-review-summary.md`
    - Display: `"📄 Final Self Review summary saved: {report_path}"`
 
-   **10.3 Display Final Summary**:
+   **11.3 Display Final Summary**:
 
    - Display comprehensive summary:
      ```

@@ -27,6 +27,12 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
+0. **Sync Constitution to Claude Rules** (if needed):
+   - If `.claude/rules/constitution.md` doesn't exist or contains only default comments (≤4 lines)
+   - AND `.grove/memory/constitution.md` exists
+   - Then copy `.grove/memory/constitution.md` to `.claude/rules/constitution.md` with AUTO-SYNCED header
+   - This ensures Claude Code enforces project principles even if `/grove.constitution` wasn't run
+
 1. **Setup**: Run `{SCRIPT}` from repo root and parse JSON for FEATURE_SPEC, IMPL_PLAN, SPECS_DIR, BRANCH. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
 2. **Load context**: Read FEATURE_SPEC and `/memory/constitution.md`. Load IMPL_PLAN template (already copied).
@@ -64,7 +70,27 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Phase 1: Update agent context by running the agent script
    - Re-evaluate Constitution Check post-design
 
-5. **Stop and report**: Command ends after Phase 2 planning. Report branch, IMPL_PLAN path, and generated artifacts.
+5. **Stop and report**: Command ends after Phase 1 planning. Report branch, IMPL_PLAN path, and generated artifacts.
+
+   **CRITICAL - MANDATORY Next Step Output**:
+   After reporting artifacts, you MUST output the next step. This is NOT optional.
+
+   Output EXACTLY:
+   ```
+   ## Next Steps
+
+   Plan has been created successfully!
+
+   To create implementation tasks, run:
+   /grove.tasks
+
+   This will break down the plan into specific, actionable development tasks.
+   ```
+
+   **IMPORTANT**:
+   - This next steps section is MANDATORY and must ALWAYS be displayed
+   - Do NOT replace with generic text like "review the plan" or "start implementation"
+   - The `/grove.tasks` command MUST be explicitly shown
 
 ## Phases
 
