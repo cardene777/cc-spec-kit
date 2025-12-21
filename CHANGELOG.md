@@ -7,6 +7,16 @@ All notable changes to Grove CLI are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2025-12-21
+
+### Fixed
+
+- Language template organization during `grove init`
+  - Selected language files (constitution-template.md, spec-template.md) are now correctly placed in `.grove/templates/` directory
+  - Removed duplicate language subdirectories (`.grove/templates/en/`, `.grove/templates/ja/`)
+  - Removed duplicate template files that were created in both root and subdirectories
+- Template confirmation options now use English-only format for better cross-agent compatibility
+
 ## [0.1.0] - 2025-12-21
 
 ### Added

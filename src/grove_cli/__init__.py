@@ -58,7 +58,7 @@ ssl_context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 client = httpx.Client(verify=ssl_context)
 
 # Version
-__version__ = "0.0.1"
+__version__ = "0.1.1"
 
 # =============================================================================
 # AI Agent Support
@@ -1574,6 +1574,66 @@ def ensure_executable_scripts(project_path: Path, tracker: StepTracker | None = 
             for f in failures:
                 console.print(f"  - {f}")
 
+def cleanup_language_templates(project_dir: Path, lang: str, tracker: StepTracker = None) -> None:
+    """Clean up language-specific template directories and files.
+
+    After extracting the template ZIP, this function:
+    1. Moves selected language files from .grove/templates/{lang}/ to .grove/templates/
+    2. Removes language subdirectories (.grove/templates/en/, .grove/templates/ja/)
+    3. Removes any duplicate template files in .grove/templates/
+
+    Args:
+        project_dir: Project directory path
+        lang: Selected language code (ja or en)
+        tracker: Optional StepTracker for progress display
+    """
+    if tracker:
+        tracker.add("cleanup-lang", "Organizing language-specific templates")
+        tracker.start("cleanup-lang")
+
+    templates_dir = project_dir / ".grove" / "templates"
+
+    if not templates_dir.exists():
+        if tracker:
+            tracker.warn("cleanup-lang", "templates directory not found")
+        return
+
+    # Language-specific template files to process
+    lang_specific_files = [
+        "constitution-template.md",
+        "spec-template.md",
+    ]
+
+    lang_dir = templates_dir / lang
+
+    # Move selected language files to templates root
+    if lang_dir.exists():
+        for template_file in lang_specific_files:
+            source_file = lang_dir / template_file
+            dest_file = templates_dir / template_file
+
+            if source_file.exists():
+                # Remove existing file if it exists (avoid duplicates)
+                if dest_file.exists():
+                    dest_file.unlink()
+
+                # Move file from language subdirectory to templates root
+                shutil.move(str(source_file), str(dest_file))
+
+    # Remove all language subdirectories
+    for lang_code in SUPPORTED_LANGUAGES:
+        lang_subdir = templates_dir / lang_code
+        if lang_subdir.exists() and lang_subdir.is_dir():
+            shutil.rmtree(lang_subdir)
+
+    # Also remove 'agents' subdirectory if it exists (already copied to appropriate location)
+    agents_dir = templates_dir / "agents"
+    if agents_dir.exists() and agents_dir.is_dir():
+        shutil.rmtree(agents_dir)
+
+    if tracker:
+        tracker.complete("cleanup-lang", f"organized {lang} templates")
+
 def install_common_templates(project_dir: Path, lang: str, script_type: str, tracker: StepTracker = None) -> None:
     """Install language-specific templates to project.
 
@@ -1903,6 +1963,9 @@ def init(
             # Download base template from GitHub
             # Use first selected AI agent for template download (base template)
             download_and_extract_template(project_path, selected_ai_agents[0], selected_script, here, verbose=False, tracker=tracker, client=local_client, debug=debug, github_token=github_token)
+
+            # Cleanup language-specific template directories
+            cleanup_language_templates(project_path, selected_lang, tracker=tracker)
 
             # Install language-specific templates (.grove/ directory structure)
             install_common_templates(project_path, selected_lang, selected_script, tracker=tracker)
