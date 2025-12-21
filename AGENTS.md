@@ -1,337 +1,224 @@
-# AGENTS.md
+# AGENTS.md - Grove Developer Guide
 
-## About Spec Kit and Specify
+## About Grove
 
-**GitHub Spec Kit** is a comprehensive toolkit for implementing Spec-Driven Development (SDD) - a methodology that emphasizes creating clear specifications before implementation. The toolkit includes templates, scripts, and workflows that guide development teams through a structured approach to building software.
+**Grove** is a comprehensive toolkit for implementing Spec-Driven Development (SDD) with built-in quality assurance. It combines clear specification creation with TDD workflows and AI-powered automated review (Self Review, Auto-Fix, Cross Review).
 
-**Specify CLI** is the command-line interface that bootstraps projects with the Spec Kit framework. It sets up the necessary directory structures, templates, and AI agent integrations to support the Spec-Driven Development workflow.
-
-The toolkit supports multiple AI coding assistants, allowing teams to use their preferred tools while maintaining consistent project structure and development practices.
+**Grove CLI** bootstraps projects with the Grove framework, setting up directory structures, templates, and AI agent integrations.
 
 ---
 
-## General practices
+## Currently Supported AI Agents
 
-- Any changes to `__init__.py` for the Specify CLI require a version rev in `pyproject.toml` and addition of entries to `CHANGELOG.md`.
+Grove **officially supports 2 AI agents**:
 
-## Adding New Agent Support
+| Agent | Support Level | Directory | Background Self Review | Notes |
+|-------|---------------|-----------|------------------------|-------|
+| **Claude Code** | ✅ Full (Recommended) | `.claude/` | ✅ Yes | Full support for verification agents, background execution |
+| **Codex CLI** | ✅ Basic | `.codex/` | ❌ No | Template generation only, no Grove-specific features |
 
-This section explains how to add support for new AI agents/assistants to the Specify CLI. Use this guide as a reference when integrating new AI tools into the Spec-Driven Development workflow.
+### Claude Code (Recommended)
 
-### Overview
+**Why Claude Code is recommended:**
 
-Specify supports multiple AI agents by generating agent-specific command files and directory structures when initializing projects. Each agent has its own conventions for:
+- ✅ **Background Self Review**: Autonomous verification agents run in parallel
+- ✅ **Verification Agent**: Native subagent support with `run_in_background=True`
+- ✅ **Auto-Fix**: TDD-based automatic issue resolution
+- ✅ **8-Point Quality Checklist**: Automated quality verification
+- ✅ **All Grove Commands**: Full support for 12 slash commands
 
-- **Command file formats** (Markdown, TOML, etc.)
-- **Directory structures** (`.claude/commands/`, `.windsurf/workflows/`, etc.)
-- **Command invocation patterns** (slash commands, CLI tools, etc.)
-- **Argument passing conventions** (`$ARGUMENTS`, `{{args}}`, etc.)
+**Setup**: [Claude Code Documentation](https://docs.anthropic.com/en/docs/claude-code/setup)
 
-### Current Supported Agents
+### Codex CLI (Basic Support)
 
-| Agent                      | Directory              | Format   | CLI Tool        | Description                 |
-| -------------------------- | ---------------------- | -------- | --------------- | --------------------------- |
-| **Claude Code**            | `.claude/commands/`    | Markdown | `claude`        | Anthropic's Claude Code CLI |
-| **Gemini CLI**             | `.gemini/commands/`    | TOML     | `gemini`        | Google's Gemini CLI         |
-| **GitHub Copilot**         | `.github/agents/`      | Markdown | N/A (IDE-based) | GitHub Copilot in VS Code   |
-| **Cursor**                 | `.cursor/commands/`    | Markdown | `cursor-agent`  | Cursor CLI                  |
-| **Qwen Code**              | `.qwen/commands/`      | TOML     | `qwen`          | Alibaba's Qwen Code CLI     |
-| **opencode**               | `.opencode/command/`   | Markdown | `opencode`      | opencode CLI                |
-| **Codex CLI**              | `.codex/commands/`     | Markdown | `codex`         | Codex CLI                   |
-| **Windsurf**               | `.windsurf/workflows/` | Markdown | N/A (IDE-based) | Windsurf IDE workflows      |
-| **Kilo Code**              | `.kilocode/rules/`     | Markdown | N/A (IDE-based) | Kilo Code IDE               |
-| **Auggie CLI**             | `.augment/rules/`      | Markdown | `auggie`        | Auggie CLI                  |
-| **Roo Code**               | `.roo/rules/`          | Markdown | N/A (IDE-based) | Roo Code IDE                |
-| **CodeBuddy CLI**          | `.codebuddy/commands/` | Markdown | `codebuddy`     | CodeBuddy CLI               |
-| **Qoder CLI**              | `.qoder/commands/`     | Markdown | `qoder`         | Qoder CLI                   |
-| **Amazon Q Developer CLI** | `.amazonq/prompts/`    | Markdown | `q`             | Amazon Q Developer CLI      |
-| **Amp**                    | `.agents/commands/`    | Markdown | `amp`           | Amp CLI                     |
-| **SHAI**                   | `.shai/commands/`      | Markdown | `shai`          | SHAI CLI                    |
-| **IBM Bob**                | `.bob/commands/`       | Markdown | N/A (IDE-based) | IBM Bob IDE                 |
+**Current support:**
 
-### Step-by-Step Integration Guide
+- ✅ Template generation (`.codex/prompts/` directory)
+- ✅ Grove command files (`/grove.constitution`, `/grove.specify`, etc.)
+- ❌ Background Self Review (not supported)
+- ❌ Verification agents (not available)
 
-Follow these steps to add a new agent (using a hypothetical new agent as an example):
+---
 
-#### 1. Add to AGENT_CONFIG
+## Legacy Agent Configurations
 
-**IMPORTANT**: Use the actual CLI tool name as the key, not a shortened version.
+Grove CLI includes AGENT_CONFIG definitions for 15+ other AI agents inherited from Spec Kit. **These are NOT officially supported by Grove** and exist only for template generation compatibility:
 
-Add the new agent to the `AGENT_CONFIG` dictionary in `src/specify_cli/__init__.py`. This is the **single source of truth** for all agent metadata:
+- GitHub Copilot, Cursor, Gemini, Qwen, opencode, Windsurf, Kilo Code, Auggie, CodeBuddy, Qoder, Roo, Amazon Q, Amp, SHAI, IBM Bob
+
+**Important notes about legacy agents:**
+
+1. ❌ **No Grove-specific features**: Background Self Review, Auto-Fix, verification agents are Claude Code exclusive
+2. ⚠️ **Untested**: Grove team does not test or maintain these integrations
+3. 📝 **Template-only**: Only basic command file generation is supported
+4. 🚧 **Use at your own risk**: May have bugs or incompatibilities with Grove workflows
+
+If you need these agents, consider contributing to Grove by implementing proper support!
+
+---
+
+## General Practices
+
+- Any changes to `src/grove_cli/__init__.py` require:
+  - Version bump in `pyproject.toml`
+  - Changelog entry in `CHANGELOG.md`
+
+---
+
+## Adding New Agent Support to Grove
+
+### Prerequisites
+
+Before adding a new agent, understand Grove's architecture:
+
+1. **Template Generation** (Basic): Generate command files for any agent
+2. **Grove Features** (Advanced): Background Self Review, verification agents, Auto-Fix
+
+Adding basic template generation is straightforward. Adding full Grove feature support requires significant effort.
+
+### Step 1: Add to AGENT_CONFIG
+
+**File**: `src/grove_cli/__init__.py`
+
+Add the new agent to `AGENT_CONFIG` dictionary:
 
 ```python
 AGENT_CONFIG = {
     # ... existing agents ...
-    "new-agent-cli": {  # Use the ACTUAL CLI tool name (what users type in terminal)
+    "new-agent": {  # Use actual CLI executable name
         "name": "New Agent Display Name",
-        "folder": ".newagent/",  # Directory for agent files
-        "install_url": "https://example.com/install",  # URL for installation docs (or None if IDE-based)
-        "requires_cli": True,  # True if CLI tool required, False for IDE-based agents
+        "folder": ".newagent/",
+        "install_url": "https://example.com/install",  # or None for IDE-based
+        "requires_cli": True,  # or False for IDE-based
     },
 }
 ```
 
-**Key Design Principle**: The dictionary key should match the actual executable name that users install. For example:
+**Key principles:**
 
-- ✅ Use `"cursor-agent"` because the CLI tool is literally called `cursor-agent`
-- ❌ Don't use `"cursor"` as a shortcut if the tool is `cursor-agent`
+- Use the **actual CLI executable name** as the key (e.g., `"cursor-agent"` not `"cursor"`)
+- This eliminates special-case mappings throughout the codebase
+- Set `requires_cli: True` only if a CLI tool check is needed
 
-This eliminates the need for special-case mappings throughout the codebase.
+### Step 2: Update SUPPORTED_AI_AGENTS
 
-**Field Explanations**:
+**File**: `src/grove_cli/__init__.py`
 
-- `name`: Human-readable display name shown to users
-- `folder`: Directory where agent-specific files are stored (relative to project root)
-- `install_url`: Installation documentation URL (set to `None` for IDE-based agents)
-- `requires_cli`: Whether the agent requires a CLI tool check during initialization
-
-#### 2. Update CLI Help Text
-
-Update the `--ai` parameter help text in the `init()` command to include the new agent:
+Add the new agent to the `SUPPORTED_AI_AGENTS` list if you want it available in `grove init`:
 
 ```python
-ai_assistant: str = typer.Option(None, "--ai", help="AI assistant to use: claude, gemini, copilot, cursor-agent, qwen, opencode, codex, windsurf, kilocode, auggie, codebuddy, new-agent-cli, or q"),
+SUPPORTED_AI_AGENTS = ["claude", "codex", "new-agent"]
 ```
 
-Also update any function docstrings, examples, and error messages that list available agents.
+**Note**: Only add agents you intend to officially support. Legacy agents remain in AGENT_CONFIG but NOT in SUPPORTED_AI_AGENTS.
 
-#### 3. Update README Documentation
+### Step 3: Update Release Scripts
 
-Update the **Supported AI Agents** section in `README.md` to include the new agent:
+**File**: `.github/workflows/scripts/create-release-packages.sh`
 
-- Add the new agent to the table with appropriate support level (Full/Partial)
-- Include the agent's official website link
-- Add any relevant notes about the agent's implementation
-- Ensure the table formatting remains aligned and consistent
-
-#### 4. Update Release Package Script
-
-Modify `.github/workflows/scripts/create-release-packages.sh`:
-
-##### Add to ALL_AGENTS array
+Add to `ALL_AGENTS` array and case statement:
 
 ```bash
-ALL_AGENTS=(claude gemini copilot cursor-agent qwen opencode windsurf q)
-```
+ALL_AGENTS=(claude codex new-agent)
 
-##### Add case statement for directory structure
-
-```bash
+# In build_variant() function
 case $agent in
-  # ... existing cases ...
-  windsurf)
-    mkdir -p "$base_dir/.windsurf/workflows"
-    generate_commands windsurf md "\$ARGUMENTS" "$base_dir/.windsurf/workflows" "$script" ;;
-esac
-```
-
-#### 4. Update GitHub Release Script
-
-Modify `.github/workflows/scripts/create-github-release.sh` to include the new agent's packages:
-
-```bash
-gh release create "$VERSION" \
-  # ... existing packages ...
-  .genreleases/spec-kit-template-windsurf-sh-"$VERSION".zip \
-  .genreleases/spec-kit-template-windsurf-ps-"$VERSION".zip \
-  # Add new agent packages here
-```
-
-#### 5. Update Agent Context Scripts
-
-##### Bash script (`scripts/bash/update-agent-context.sh`)
-
-Add file variable:
-
-```bash
-WINDSURF_FILE="$REPO_ROOT/.windsurf/rules/specify-rules.md"
-```
-
-Add to case statement:
-
-```bash
-case "$AGENT_TYPE" in
-  # ... existing cases ...
-  windsurf) update_agent_file "$WINDSURF_FILE" "Windsurf" ;;
-  "")
-    # ... existing checks ...
-    [ -f "$WINDSURF_FILE" ] && update_agent_file "$WINDSURF_FILE" "Windsurf";
-    # Update default creation condition
-    ;;
-esac
-```
-
-##### PowerShell script (`scripts/powershell/update-agent-context.ps1`)
-
-Add file variable:
-
-```powershell
-$windsurfFile = Join-Path $repoRoot '.windsurf/rules/specify-rules.md'
-```
-
-Add to switch statement:
-
-```powershell
-switch ($AgentType) {
     # ... existing cases ...
-    'windsurf' { Update-AgentFile $windsurfFile 'Windsurf' }
-    '' {
-        foreach ($pair in @(
-            # ... existing pairs ...
-            @{file=$windsurfFile; name='Windsurf'}
-        )) {
-            if (Test-Path $pair.file) { Update-AgentFile $pair.file $pair.name }
-        }
-        # Update default creation condition
-    }
-}
+    new-agent)
+        mkdir -p "$base_dir/.newagent/commands"
+        generate_commands new-agent md "\$ARGUMENTS" "$base_dir/.newagent/commands" "$script" ;;
+esac
 ```
 
-#### 6. Update CLI Tool Checks (Optional)
+### Step 4: Update Documentation
 
-For agents that require CLI tools, add checks in the `check()` command and agent validation:
+**Files to update:**
 
-```python
-# In check() command
-tracker.add("windsurf", "Windsurf IDE (optional)")
-windsurf_ok = check_tool_for_tracker("windsurf", "https://windsurf.com/", tracker)
+1. **README.md / README-ja.md**: Add to "Supported AI Agents" table
+2. **docs/agents.md**: Add detailed agent information
+3. **CHANGELOG.md**: Document the new agent addition
 
-# In init validation (only if CLI tool required)
-elif selected_ai == "windsurf":
-    if not check_tool("windsurf", "Install from: https://windsurf.com/"):
-        console.print("[red]Error:[/red] Windsurf CLI is required for Windsurf projects")
-        agent_tool_missing = True
-```
+### Step 5: Test
 
-**Note**: CLI tool checks are now handled automatically based on the `requires_cli` field in AGENT_CONFIG. No additional code changes needed in the `check()` or `init()` commands - they automatically loop through AGENT_CONFIG and check tools as needed.
-
-## Important Design Decisions
-
-### Using Actual CLI Tool Names as Keys
-
-**CRITICAL**: When adding a new agent to AGENT_CONFIG, always use the **actual executable name** as the dictionary key, not a shortened or convenient version.
-
-**Why this matters:**
-
-- The `check_tool()` function uses `shutil.which(tool)` to find executables in the system PATH
-- If the key doesn't match the actual CLI tool name, you'll need special-case mappings throughout the codebase
-- This creates unnecessary complexity and maintenance burden
-
-**Example - The Cursor Lesson:**
-
-❌ **Wrong approach** (requires special-case mapping):
-
-```python
-AGENT_CONFIG = {
-    "cursor": {  # Shorthand that doesn't match the actual tool
-        "name": "Cursor",
-        # ...
-    }
-}
-
-# Then you need special cases everywhere:
-cli_tool = agent_key
-if agent_key == "cursor":
-    cli_tool = "cursor-agent"  # Map to the real tool name
-```
-
-✅ **Correct approach** (no mapping needed):
-
-```python
-AGENT_CONFIG = {
-    "cursor-agent": {  # Matches the actual executable name
-        "name": "Cursor",
-        # ...
-    }
-}
-
-# No special cases needed - just use agent_key directly!
-```
-
-**Benefits of this approach:**
-
-- Eliminates special-case logic scattered throughout the codebase
-- Makes the code more maintainable and easier to understand
-- Reduces the chance of bugs when adding new agents
-- Tool checking "just works" without additional mappings
-
-#### 7. Update Devcontainer files (Optional)
-
-For agents that have VS Code extensions or require CLI installation, update the devcontainer configuration files:
-
-##### VS Code Extension-based Agents
-
-For agents available as VS Code extensions, add them to `.devcontainer/devcontainer.json`:
-
-```json
-{
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        // ... existing extensions ...
-        // [New Agent Name]
-        "[New Agent Extension ID]"
-      ]
-    }
-  }
-}
-```
-
-##### CLI-based Agents
-
-For agents that require CLI tools, add installation commands to `.devcontainer/post-create.sh`:
+Test the following:
 
 ```bash
-#!/bin/bash
+# Template generation
+grove init test-project --ai new-agent --lang en
 
-# Existing installations...
+# Verify directory structure
+ls -la test-project/.newagent/
 
-echo -e "\n🤖 Installing [New Agent Name] CLI..."
-# run_command "npm install -g [agent-cli-package]@latest" # Example for node-based CLI
-# or other installation instructions (must be non-interactive and compatible with Linux Debian "Trixie" or later)...
-echo "✅ Done"
-
+# Verify command files
+ls test-project/.newagent/commands/grove.*.md
 ```
 
-**Quick Tips:**
+---
 
-- **Extension-based agents**: Add to the `extensions` array in `devcontainer.json`
-- **CLI-based agents**: Add installation scripts to `post-create.sh`
-- **Hybrid agents**: May require both extension and CLI installation
-- **Test thoroughly**: Ensure installations work in the devcontainer environment
+## Implementing Full Grove Features
 
-## Agent Categories
+To add **Background Self Review** support (like Claude Code):
 
-### CLI-Based Agents
+### Requirements
 
-Require a command-line tool to be installed:
+1. **Subagent System**: Agent must support spawning background tasks
+2. **File I/O**: Agent must read/write files autonomously
+3. **Markdown Parsing**: Agent must parse verification reports
+4. **Task Tracking**: Agent must use TaskOutput for synchronization
 
-- **Claude Code**: `claude` CLI
-- **Gemini CLI**: `gemini` CLI
-- **Cursor**: `cursor-agent` CLI
-- **Qwen Code**: `qwen` CLI
-- **opencode**: `opencode` CLI
-- **Amazon Q Developer CLI**: `q` CLI
-- **CodeBuddy CLI**: `codebuddy` CLI
-- **Qoder CLI**: `qoder` CLI
-- **Amp**: `amp` CLI
-- **SHAI**: `shai` CLI
+### Implementation Steps
 
-### IDE-Based Agents
+1. **Create Verification Agent Template**:
+   - File: `templates/agents/{agent}/agents/verification.md`
+   - Based on: `templates/agents/claude/agents/verification.md`
 
-Work within integrated development environments:
+2. **Update Implement Command**:
+   - File: `templates/agents/commands/implement.md`
+   - Add agent-specific verification logic (Step 7.2.2 and 7.3)
 
-- **GitHub Copilot**: Built into VS Code/compatible editors
-- **Windsurf**: Built into Windsurf IDE
-- **IBM Bob**: Built into IBM Bob IDE
+3. **Test Background Execution**:
+   - Verify agent can spawn background tasks with `run_in_background=True`
+   - Verify autonomous report generation
+   - Verify TaskOutput synchronization
+
+**Current status**: Only Claude Code has full implementation.
+
+---
+
+## Directory Structures by Agent
+
+### Claude Code (Full Support)
+
+```
+.claude/
+├── commands/          # Slash commands (grove.*.md)
+├── agents/            # Verification agent
+│   └── verification.md
+└── rules/             # Project rules
+    └── constitution.md
+```
+
+### Codex (Basic Support)
+
+```
+.codex/
+└── prompts/           # Command prompts (grove.*.md)
+```
+
+### Legacy Agents (Template-Only)
+
+Directories defined in AGENT_CONFIG but not actively maintained:
+- `.github/agents/` (Copilot)
+- `.cursor/commands/` (Cursor)
+- `.gemini/commands/` (Gemini)
+- `.windsurf/workflows/` (Windsurf)
+- etc.
+
+---
 
 ## Command File Formats
 
-### Markdown Format
-
-Used by: Claude, Cursor, opencode, Windsurf, Amazon Q Developer, Amp, SHAI, IBM Bob
-
-**Standard format:**
+### Markdown Format (Claude, Codex, Cursor, etc.)
 
 ```markdown
 ---
@@ -341,20 +228,7 @@ description: "Command description"
 Command content with {SCRIPT} and $ARGUMENTS placeholders.
 ```
 
-**GitHub Copilot Chat Mode format:**
-
-```markdown
----
-description: "Command description"
-mode: speckit.command-name
----
-
-Command content with {SCRIPT} and $ARGUMENTS placeholders.
-```
-
-### TOML Format
-
-Used by: Gemini, Qwen
+### TOML Format (Gemini, Qwen)
 
 ```toml
 description = "Command description"
@@ -364,50 +238,50 @@ Command content with {SCRIPT} and {{args}} placeholders.
 """
 ```
 
-## Directory Conventions
+---
 
-- **CLI agents**: Usually `.<agent-name>/commands/`
-- **IDE agents**: Follow IDE-specific patterns:
-  - Copilot: `.github/agents/`
-  - Cursor: `.cursor/commands/`
-  - Windsurf: `.windsurf/workflows/`
+## Testing Guidelines
 
-## Argument Patterns
+When adding or modifying agent support:
 
-Different agents use different argument placeholders:
-
-- **Markdown/prompt-based**: `$ARGUMENTS`
-- **TOML-based**: `{{args}}`
-- **Script placeholders**: `{SCRIPT}` (replaced with actual script path)
-- **Agent placeholders**: `__AGENT__` (replaced with agent name)
-
-## Testing New Agent Integration
-
-1. **Build test**: Run package creation script locally
-2. **CLI test**: Test `specify init --ai <agent>` command
-3. **File generation**: Verify correct directory structure and files
-4. **Command validation**: Ensure generated commands work with the agent
-5. **Context update**: Test agent context update scripts
-
-## Common Pitfalls
-
-1. **Using shorthand keys instead of actual CLI tool names**: Always use the actual executable name as the AGENT_CONFIG key (e.g., `"cursor-agent"` not `"cursor"`). This prevents the need for special-case mappings throughout the codebase.
-2. **Forgetting update scripts**: Both bash and PowerShell scripts must be updated when adding new agents.
-3. **Incorrect `requires_cli` value**: Set to `True` only for agents that actually have CLI tools to check; set to `False` for IDE-based agents.
-4. **Wrong argument format**: Use correct placeholder format for each agent type (`$ARGUMENTS` for Markdown, `{{args}}` for TOML).
-5. **Directory naming**: Follow agent-specific conventions exactly (check existing agents for patterns).
-6. **Help text inconsistency**: Update all user-facing text consistently (help strings, docstrings, README, error messages).
-
-## Future Considerations
-
-When adding new agents:
-
-- Consider the agent's native command/workflow patterns
-- Ensure compatibility with the Spec-Driven Development process
-- Document any special requirements or limitations
-- Update this guide with lessons learned
-- Verify the actual CLI tool name before adding to AGENT_CONFIG
+1. **Test template generation**: `grove init test --ai {agent}`
+2. **Verify file structure**: Check `.{agent}/` directory
+3. **Test commands**: Try `/grove.constitution`, `/grove.specify`, etc.
+4. **Document limitations**: Be clear about what's supported vs. not supported
 
 ---
 
-*This documentation should be updated whenever new agents are added to maintain accuracy and completeness.*
+## Future Roadmap
+
+Potential areas for community contribution:
+
+1. **Expand Codex Support**: Add verification agent for Codex
+2. **GitHub Copilot Support**: Implement background Self Review
+3. **Cursor Support**: Add Grove-specific features
+4. **Test & Document**: Verify all legacy agents work correctly
+
+---
+
+## Common Pitfalls
+
+1. **Confusing template generation with full Grove support**: Most agents only have basic template generation
+2. **Using shorthand keys**: Always use actual CLI executable names in AGENT_CONFIG
+3. **Forgetting to update SUPPORTED_AI_AGENTS**: New agents won't appear in `grove init` without this
+4. **Claiming full support**: Only Claude Code has background Self Review; be honest about limitations
+
+---
+
+## Contributing
+
+Want to add full Grove support for your favorite AI agent?
+
+1. Fork the repository
+2. Implement verification agent for your target agent
+3. Test thoroughly with background execution
+4. Submit PR with documentation updates
+
+**Questions?** Open an issue on [GitHub](https://github.com/cardene777/grove/issues)
+
+---
+
+*Last updated: 2025-12-21*

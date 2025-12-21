@@ -1,13 +1,17 @@
+NOTICE
+
+This project (Grove) contains code derived from Spec Kit, which is licensed under the MIT License.
+
+================================================================================
+
+Spec Kit
+
+Repository: https://github.com/microsoft/speckit (archived)
+Original Authors: Den Delimarsky, John Lam
+
 MIT License
 
-This project contains code derived from Spec Kit (GitHub, Inc.)
-and original work by Cardene.
-
-Original Spec Kit:
 Copyright (c) GitHub, Inc.
-
-Grove Extensions:
-Copyright (c) 2025 Cardene
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,3 +31,17 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+================================================================================
+
+Grove Extensions
+
+The following features are original work by Cardene and contributors:
+- Background parallel execution for Self Review
+- Autonomous verification agent with 8-point quality checklist
+- Auto-Fix functionality with TDD approach
+- Cross Review support for multi-AI verification
+- t-wada style TDD workflow integration
+- Multi-language support (Japanese/English)
+- Frontend design specifications workflow
+
+For the complete list of Grove-specific features, see CHANGELOG.md.

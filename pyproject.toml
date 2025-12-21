@@ -1,8 +1,27 @@
 [project]
-name = "specify-cli"
-version = "0.0.22"
-description = "Specify CLI, part of GitHub Spec Kit. A tool to bootstrap your projects for Spec-Driven Development (SDD)."
+name = "grove-cli"
+version = "0.1.0"
+description = "AI-powered development toolkit with built-in quality assurance: Spec-Driven Development × TDD × AI Auto-Review"
+readme = "README.md"
 requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Cardene"},
+]
+keywords = [
+    "ai", "development", "tdd", "quality-assurance",
+    "spec-driven", "code-review", "automation", "cli"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+]
 dependencies = [
     "typer",
     "rich",
@@ -10,15 +29,49 @@ dependencies = [
     "platformdirs",
     "readchar",
     "truststore>=0.10.4",
+    "pyyaml",
 ]
 
+[project.urls]
+Homepage = "https://github.com/cardene777/grove"
+Repository = "https://github.com/cardene777/grove"
+Issues = "https://github.com/cardene777/grove/issues"
+Changelog = "https://github.com/cardene777/grove/blob/main/CHANGELOG.md"
+
 [project.scripts]
-specify = "specify_cli:main"
+grove = "grove_cli:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/specify_cli"]
+packages = ["src/grove_cli"]
+exclude = [
+    ".claude/",
+    ".devcontainer/",
+    ".github/",
+    ".vscode/",
+    "tests/",
+    "*.pyc",
+    "__pycache__/",
+]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    ".claude/",
+    ".devcontainer/",
+    ".github/",
+    ".vscode/",
+    "tests/",
+    "dist/",
+    ".venv/",
+    "*.pyc",
+    "__pycache__/",
+]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"templates" = "share/grove-cli/templates"
+"templates/agent-configs" = "share/grove-cli/templates/agent-configs"
+"scripts" = "share/grove-cli/scripts"
 

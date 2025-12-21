@@ -1,3 +1,9 @@
+---
+enabled: false
+description: Project Constitution Template
+version: 1.0.0
+---
+
 # [PROJECT_NAME] Constitution
 <!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
 
