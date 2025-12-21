@@ -95,15 +95,24 @@ Given that feature description, do this:
    - The JSON output will contain BRANCH_NAME and SPEC_FILE paths
    - For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot")
 
-4. Follow this execution flow:
+4. Follow this execution flow based on user's template choice from Step 1:
 
+    **If user chose "Use template as-is":**
+    1. Use the template content directly without modification
+    2. Skip to Step 5 (Write the specification)
+
+    **If user chose "Use template as base and improve":**
+    1. Use template content as starting point
+    2. If user provided feature description in $ARGUMENTS:
+       - Identify parts of template that need customization based on description
+       - Update only those specific sections while keeping template structure
+    3. If user did not provide feature description:
+       - Use template as-is and note that user can manually edit afterward
+    4. Skip to Step 5 (Write the specification)
+
+    **If user chose "Ignore template and create from scratch":**
     1. Parse user description from Input
-       If empty:
-         - If template has `enabled: true`: Ask user to choose:
-           a) Use template content as-is (recommended for quick start)
-           b) Use template as reference and customize based on feature description
-           c) Start from scratch with your own feature description
-         - If template has `enabled: false` or missing: Ask user to provide feature description
+       If empty: Ask user to provide feature description
        If provided: proceed with feature description
     2. Extract key concepts from description
        Identify: actors, actions, data, constraints
@@ -125,7 +134,7 @@ Given that feature description, do this:
        Include both quantitative metrics (time, performance, volume) and qualitative measures (user satisfaction, task completion)
        Each criterion must be verifiable without implementation details
     7. Identify Key Entities (if data involved)
-    8. Return: SUCCESS (spec ready for planning)
+    8. Proceed to Step 5 (Write the specification)
 
 5. Write the specification to SPEC_FILE using the template structure, replacing placeholders with concrete details derived from the feature description (arguments) while preserving section order and headings.
 
