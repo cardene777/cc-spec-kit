@@ -102,9 +102,17 @@ T003実装完了 → Self Review起動（バックグラウンド）
 
 ## 📦 インストール
 
-### 1回だけインストール（推奨）
+### PyPIからインストール（推奨）
 
 ```bash
+# PyPIから安定版をインストール
+uv tool install grove-cli
+```
+
+### GitHubからインストール（開発版）
+
+```bash
+# 最新の開発版をインストール
 uv tool install grove-cli --from git+https://github.com/cardene777/grove.git
 ```
 
@@ -124,6 +132,10 @@ grove init --here --ai claude --lang ja
 ### アップグレード
 
 ```bash
+# PyPI版をアップグレード
+uv tool install grove-cli --upgrade
+
+# GitHub版をアップグレード
 uv tool install grove-cli --force --from git+https://github.com/cardene777/grove.git
 ```
 

@@ -102,9 +102,17 @@ Reduces wait time and improves development speed.
 
 ## 📦 Installation
 
-### One-time Install (Recommended)
+### Install from PyPI (Recommended)
 
 ```bash
+# Stable release from PyPI
+uv tool install grove-cli
+```
+
+### Install from GitHub (Development Version)
+
+```bash
+# Latest development version
 uv tool install grove-cli --from git+https://github.com/cardene777/grove.git
 ```
 
@@ -124,6 +132,10 @@ grove init --here --ai claude --lang en
 ### Upgrade
 
 ```bash
+# Upgrade PyPI version
+uv tool install grove-cli --upgrade
+
+# Upgrade GitHub version
 uv tool install grove-cli --force --from git+https://github.com/cardene777/grove.git
 ```
 
