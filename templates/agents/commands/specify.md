@@ -102,13 +102,25 @@ Given that feature description, do this:
     2. Skip to Step 5 (Write the specification)
 
     **If user chose "Use template as base and improve":**
-    1. Use template content as starting point
-    2. If user provided feature description in $ARGUMENTS:
-       - Identify parts of template that need customization based on description
-       - Update only those specific sections while keeping template structure
-    3. If user did not provide feature description:
-       - Use template as-is and note that user can manually edit afterward
-    4. Skip to Step 5 (Write the specification)
+    1. Read the template file (.grove/templates/spec-template.md)
+    2. Analyze template quality and identify gaps:
+       - Missing sections (background, purpose, target users, scope, exclusions)
+       - Incomplete user scenarios (error flows, edge cases, accessibility)
+       - Missing non-functional requirements (security, reliability, observability, accessibility, localization)
+       - Insufficient data policies (retention, compliance, backup, deletion)
+       - Lack of business KPIs in success criteria
+       - Entity relationship constraints and policies
+       - Any hardcoded values that should be placeholders
+    3. If user provided feature description in $ARGUMENTS:
+       - Use analysis results to customize template for the specific feature
+       - Fill in sections based on description
+       - Add missing sections identified in analysis
+    4. If user did NOT provide feature description:
+       - Present analysis findings to user
+       - Propose specific improvements for each gap found
+       - Ask user if they want to apply all improvements or select specific ones
+       - Update template based on user's choice
+    5. Skip to Step 5 (Write the specification)
 
     **If user chose "Ignore template and create from scratch":**
     1. Parse user description from Input
