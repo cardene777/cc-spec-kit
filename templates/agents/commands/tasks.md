@@ -25,16 +25,20 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-1. Run {SCRIPT} from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
+1. Run prerequisite script and parse paths:
+   - Execute {SCRIPT} from repository root
+   - Parse FEATURE_DIR and AVAILABLE_DOCS from JSON output
+   - All paths must be absolute
+   - For single quotes in args: use escape syntax 'I'\''m Groot' or double-quote "I'm Groot"
 
-2. **Load design documents**: Read from FEATURE_DIR:
-   - **Required**: plan.md (tech stack, libraries, structure), spec.md (user stories with priorities)
-   - **Optional**: data-model.md (entities), contracts/ (API endpoints), research.md (decisions), quickstart.md (test scenarios)
-   - Note: Not all projects have all documents. Generate tasks based on what's available.
+2. Load design documents from FEATURE_DIR:
+   - Required: plan.md (tech stack, libraries, structure), spec.md (user stories with priorities)
+   - Optional: data-model.md (entities), contracts/ (API endpoints), research.md (decisions), quickstart.md (test scenarios)
+   - Note: Not all projects have all documents. Generate tasks based on what's available
 
-3. **Execute task generation workflow**:
+3. Execute task generation workflow:
    - Load plan.md and extract tech stack, libraries, project structure
-   - Load spec.md and extract user stories with their priorities (P1, P2, P3, etc.)
+   - Load spec.md and extract user stories with priorities (P1, P2, P3, etc.)
    - If data-model.md exists: Extract entities and map to user stories
    - If contracts/ exists: Map endpoints to user stories
    - If research.md exists: Extract decisions for setup tasks
@@ -43,73 +47,46 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Create parallel execution examples per user story
    - Validate task completeness (each user story has all needed tasks, independently testable)
 
-4. **Generate tasks.md**:
-
-   **CRITICAL FORMAT REQUIREMENTS**:
-   - You MUST use the exact task format defined in "Task Format with Sub-checks" section below
-   - Every task MUST have TDD Checklist and Review sub-checks
-   - Task IDs must be in brackets: [T001], NOT **T001** or T001:
-   - DO NOT use bold formatting for task IDs
-   - DO NOT create custom section headers like "Phase 0: Setup"
-   - Follow the template structure EXACTLY
-
-   Use `templates/tasks-template.md` as structure, fill with:
-   - Correct feature name from plan.md
-   - **Add metadata section at the top** (after feature name):
+4. Generate tasks.md:
+   - Use `templates/tasks-template.md` as structure
+   - CRITICAL FORMAT REQUIREMENTS:
+     - You MUST use exact task format defined in "Task Format with Sub-checks" section
+     - Every task MUST have TDD Checklist and Review sub-checks
+     - Task IDs in brackets: [T001], NOT **T001** or T001:
+     - DO NOT use bold formatting for task IDs
+     - DO NOT create custom section headers like "Phase 0: Setup"
+     - Follow template structure EXACTLY
+   - Fill with correct feature name from plan.md
+   - Add metadata section at top (after feature name):
      ```markdown
      ---
      **Implemented By**: {Current AI Agent Name} (claude/codex/unknown)
      **Created**: {YYYY-MM-DD HH:MM:SS}
      ---
      ```
-   - To detect current AI Agent:
+   - Detect current AI Agent:
      - Run `claude --help` or `code --help` → If success: AI Agent = "claude"
      - Run `codex --help` → If success: AI Agent = "codex"
      - Otherwise: AI Agent = "unknown"
-   - Phase 1: Setup tasks (project initialization)
-   - Phase 2: Foundational tasks (blocking prerequisites for all user stories)
-   - Phase 3+: One phase per user story (in priority order from spec.md)
+   - Phase structure:
+     - Phase 1: Setup tasks (project initialization)
+     - Phase 2: Foundational tasks (blocking prerequisites for all user stories)
+     - Phase 3+: One phase per user story (in priority order from spec.md)
+     - Final Phase: Polish & cross-cutting concerns
    - Each phase includes: story goal, independent test criteria, tests (if requested), implementation tasks
-   - **Each task must include TDD checklist AND review sub-checks** (see Task Format with Sub-checks below)
-   - Final Phase: Polish & cross-cutting concerns
-   - All tasks must follow the strict checklist format (see Task Generation Rules below)
+   - Each task must include TDD checklist AND review sub-checks
    - Clear file paths for each task
    - Dependencies section showing story completion order
    - Parallel execution examples per story
    - Implementation strategy section (MVP first, incremental delivery)
 
-5. **Final Report and Next Steps**:
-
-   a. First, output the report summary:
-      - Total task count
-      - Task count per user story
-      - Parallel opportunities identified
-      - Independent test criteria for each story
-      - Suggested MVP scope (typically just User Story 1)
-      - Format validation: Confirm ALL tasks follow the checklist format
-
-   b. **CRITICAL - MANDATORY Next Steps Output**:
-      After the report, you MUST output the next steps section. This is NOT optional.
-
-      Output EXACTLY:
-      ```
-      ## Next Steps
-
-      Tasks have been created successfully!
-
-      To start implementation, run:
-      /grove.implement
-
-      This will execute tasks following the TDD workflow (Red → Green → Refactor).
-
-      Optional - Verify consistency:
-      /grove.analyze
-      ```
-
-   **IMPORTANT**:
-   - This next steps section is MANDATORY and must ALWAYS be displayed
-   - Do NOT replace this with generic suggestions like "review with team" or "start from T001"
-   - The `/grove.implement` command MUST be explicitly shown
+5. Display final report:
+   - Total task count
+   - Task count per user story
+   - Parallel opportunities identified
+   - Independent test criteria for each story
+   - Suggested MVP scope (typically just User Story 1)
+   - Format validation: Confirm ALL tasks follow the checklist format
 
 Context for task generation: {ARGS}
 

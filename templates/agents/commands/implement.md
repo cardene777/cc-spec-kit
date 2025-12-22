@@ -186,62 +186,20 @@ You **MUST** consider the user input before proceeding (if not empty).
    Launch both agents in parallel for maximum efficiency:
 
    **1. Launch Documentation Agent**:
-
-   ```python
-   Task(
-       description="Update documentation for {task_id}",
-       prompt="""
-Update documentation for task {task_id}.
-
-**Input Parameters**:
-- task_id: {task_id}
-- task_description: {task_description from tasks.md}
-- task_files: [{list of file paths from task}]
-- source_dir: {auto-detected or from plan.md}
-- feature_dir: {FEATURE_DIR}
-
-Follow the documentation workflow defined in documentation.md.
-""",
-       subagent_type="documentation-agent",
-       run_in_background=True  # ← CRITICAL: Must run in background
-   )
-   ```
-
+   - Use Task tool with `subagent_type="documentation-agent"`
+   - Set `run_in_background=True`
+   - Pass parameters: task_id, task_description, task_files, source_dir, feature_dir
+   - Follow documentation workflow defined in documentation.md
    - Store job ID: `doc_jobs[task_id] = job_id`
    - Display: `"📚 {task_id} Documentation update launched (job: {job_id})"`
 
    **2. Launch Self Review Agent**:
-
    - Determine report path: `FEATURE_DIR/reports/self-review/task-{task_id}.md`
    - Create report directory if needed: `mkdir -p FEATURE_DIR/reports/self-review/`
-
-   ```python
-   Task(
-       description="Verify {task_id} and generate report",
-       prompt="""
-Verify task {task_id} implementation and generate verification report.
-
-**Input Parameters**:
-- task_id: {task_id}
-- task_description: {task_description from tasks.md}
-- task_files: [{list of file paths from task}]
-- current_phase: {current_phase_number}
-- report_path: {FEATURE_DIR}/reports/self-review/task-{task_id}.md
-
-**Your Mission**:
-1. Read context files (spec.md, plan.md, tasks.md)
-2. Read all implementation files from task_files list
-3. Execute 8-point verification checklist (see verification.md)
-4. Calculate score (0-100 based on severity deductions)
-5. Generate Markdown report following verification.md template
-6. Save report to report_path using Write tool
-7. Complete (no return value needed - main agent will read report file)
-""",
-       subagent_type="verification-agent",
-       run_in_background=True  # ← CRITICAL: Must run in background
-   )
-   ```
-
+   - Use Task tool with `subagent_type="verification-agent"`
+   - Set `run_in_background=True`
+   - Pass parameters: task_id, task_description, task_files, current_phase, report_path
+   - Agent will: Read context → Execute 8-point checklist → Calculate score → Generate report → Save to report_path
    - Store job ID: `review_jobs[task_id] = job_id`
    - Display: `"🔄 {task_id} Self Review launched (job: {job_id})"`
    - Display: `"   Report will be saved to: reports/self-review/task-{task_id}.md"`
@@ -394,25 +352,6 @@ Verify task {task_id} implementation and generate verification report.
      }
      ```
 
-   **Markdown Table Parsing Methods**:
-   ```python
-   def extract_score_from_table(report_content):
-       # Find line: "| Score | 95/100  |"
-       # Extract "95" from "95/100"
-       match = re.search(r'\|\s*Score\s*\|\s*(\d+)/100', report_content)
-       return int(match.group(1)) if match else 0
-
-   def extract_status_from_table(report_content):
-       # Find line: "| Status| **PASS** |" or "| Status| **FAIL** |"
-       match = re.search(r'\|\s*Status\s*\|\s*\*\*(\w+)\*\*', report_content)
-       return match.group(1) if match else "UNKNOWN"
-
-   def extract_issues_from_table(report_content):
-       # Find line: "| Issues| 3 |"
-       match = re.search(r'\|\s*Issues\s*\|\s*(\d+)', report_content)
-       return int(match.group(1)) if match else 0
-   ```
-
    - Display progress for each task:
      ```
      ✓ T001: PASS (Score: 95/100, Report: reports/self-review/task-T001.md)
@@ -520,114 +459,22 @@ Verify task {task_id} implementation and generate verification report.
    - Create report directory: `FEATURE_DIR/reports/self-review/`
    - Determine current phase from tasks.md (e.g., "Phase 1" → `phase-1`)
    - Generate report file: `self-review-phase-{N}.md`
-
-   - Report content:
-
-     ````markdown
-     # Phase {N} Self Review Report
-
-     **Date**: {YYYY-MM-DD HH:MM:SS}
-     **Agent**: {AI Agent Name from tasks.md metadata}
-     **Phase**: Phase {N}
-
-     ---
-
-     ## 1. Summary
-
-     | Item               | Value        |
-     | ------------------ | ------------ |
-     | Total Tasks        | {total}      |
-     | TDD Complete       | {total}      |
-     | Self Review PASS   | {pass_count} |
-     | Self Review FAIL   | {fail_count} |
-     | Phase Status       | **{PASS/FAIL}** |
-
-     ### Issues by Severity
-
-     | Severity | Count       |
-     | -------- | ----------- |
-     | Critical | {count}     |
-     | High     | {count}     |
-     | Medium   | {count}     |
-     | Low      | {count}     |
-
-     ---
-
-     ## 2. Task Summary
-
-     | Task | Type | Score | Status | Issues | Auto-Fixed |
-     | ---- | ---- | ----- | ------ | ------ | ---------- |
-     | {task_id} | {type} | {score}/100 | {PASS/FAIL} | {count} | {count} |
-
-     (Add one row per task)
-
-     ---
-
-     ## 3. Detailed Task Reports
-
-     Individual task reports are available in the `reports/self-review/` directory:
-
-     | Task ID | Description | Score | Status | Report |
-     | ------- | ----------- | ----- | ------ | ------ |
-     | {task_id} | {brief_description} | {score}/100 | {PASS/FAIL} | [`task-{task_id}.md`](task-{task_id}.md) |
-
-     (Add one row per task)
-
-     **For detailed verification results, issues, and evidence, see individual task reports above.**
-
-     ---
-
-     ## 4. Conclusion
-
-     Phase {N} implementation and Self Review completed.
-
-     **{If all PASS}**:
-     - All tasks passed Self Review
-     - Phase ready for next stage
-     - Consider running `/grove.review` for cross-review by another AI agent
-
-     **{If any FAIL}**:
-     - {fail_count} tasks require attention
-     - Priority: Address Critical/High severity issues first
-     - Run `/grove.review` for cross-review
-     - After cross-review, run `/grove.fix` to address issues
-     ````
-
+   - Use template: `templates/phase-self-review-template.md`
+   - Fill placeholders with actual values:
+     - Date, Agent name, Phase number
+     - Summary table: Total Tasks, TDD Complete, Self Review PASS/FAIL, Phase Status
+     - Issues by Severity table
+     - Task Summary table (one row per task)
+     - Detailed Task Reports table (links to individual task reports)
+     - Conclusion with appropriate message based on results
    - Save report to: `FEATURE_DIR/reports/self-review/self-review-phase-{N}.md`
    - Display: `"📄 Self Review report saved: {report_path}"`
 
    **8.7. Phase Summary Display**:
 
-   - Display detailed summary table:
-     ```
-     ╔═══════════════════════════════════════════════════════╗
-     ║         Phase {N} Implementation Summary              ║
-     ╠═══════════════════════════════════════════════════════╣
-     ║ Total Tasks:        {total}                          ║
-     ║ TDD Complete:       {total} / {total} (100%)         ║
-     ║ Self Review PASS:   {pass} / {total} ({percent}%)    ║
-     ║ Self Review FAIL:   {fail} / {total} ({percent}%)    ║
-     ║ Phase Status:       {✓ PASS / ✗ FAIL}               ║
-     ╚═══════════════════════════════════════════════════════╝
-
-     Task Details:
-     | Task  | Implementation | Self Review     | Status   |
-     |-------|---------------|-----------------|----------|
-     | T001  | ✓ Complete    | ✓ PASS (95/100) | COMPLETE |
-     | T002  | ✓ Complete    | ✗ FAIL (65/100) | FAILED   |
-     | T003  | ✓ Complete    | ✓ PASS (100/100)| COMPLETE |
-     | T004  | ✓ Complete    | ✗ FAIL (70/100) | FAILED   |
-     | T005  | ✓ Complete    | ✓ PASS (85/100) | COMPLETE |
-
-     {If any failures}:
-     ⚠️  Action Required:
-     - {fail_count} tasks failed Self Review
-     - See detailed report: reports/self-review/self-review-phase-{N}.md
-     - Recommended next steps:
-       1. Review failed tasks in tasks.md
-       2. Run `/grove.review` for cross-review by another AI agent
-       3. After cross-review, run `/grove.fix` to address identified issues
-     ```
+   - Display phase summary with task breakdown table and recommendations if failures exist
+   - Include: Total Tasks, TDD Complete, Self Review PASS/FAIL, Phase Status
+   - If failures: Suggest running `/grove.review` for cross-review, then `/grove.fix` to address issues
 
    - Clear background_jobs and doc_jobs dictionaries for next phase (if any)
 
@@ -678,119 +525,17 @@ Verify task {task_id} implementation and generate verification report.
    - Extract metadata from tasks.md to get "Implemented By" AI Agent name
    - List all completed phases from tasks.md
    - Generate report file: `self-review-summary.md`
-   - Report content:
-
-     ````markdown
-     # Self Review Summary - All Phases
-
-     **Date**: {YYYY-MM-DD HH:MM:SS}
-     **Agent**: {AI Agent Name}
-     **Phases Completed**: {Phase 1, Phase 2, Phase 3, ...}
-
-     ---
-
-     ## Overall Summary
-
-     | Item               | Value        |
-     | ------------------ | ------------ |
-     | Total Phases       | {phase_count} |
-     | Total Tasks        | {total}      |
-     | TDD Complete       | {total} / {total} (100%) |
-     | Self Review PASS   | {pass_count} / {total} ({percent}%) |
-     | Self Review FAIL   | {fail_count} / {total} ({percent}%) |
-     | Overall Status     | **{✓ PASS / ✗ FAIL}** |
-
-     ### Issues by Severity (All Phases)
-
-     | Severity | Count       |
-     | -------- | ----------- |
-     | Critical | {total_critical} |
-     | High     | {total_high}     |
-     | Medium   | {total_medium}   |
-     | Low      | {total_low}      |
-
-     ---
-
-     ## Phase Breakdown
-
-     | Phase   | Tasks | PASS | FAIL | Status |
-     | ------- | ----- | ---- | ---- | ------ |
-     | Phase 1 | {count} | {pass} | {fail} | {✓/✗} |
-     | Phase 2 | {count} | {pass} | {fail} | {✓/✗} |
-     | Phase 3 | {count} | {pass} | {fail} | {✓/✗} |
-     ...
-
-     Detailed phase reports:
-     - Phase 1: `reports/self-review/self-review-phase-1.md`
-     - Phase 2: `reports/self-review/self-review-phase-2.md`
-     - Phase 3: `reports/self-review/self-review-phase-3.md`
-     ...
-
-     ---
-
-     ## Failed Tasks Summary (if any)
-
-     | Task ID | Phase | Type | Score | Issues | Description |
-     | ------- | ----- | ---- | ----- | ------ | ----------- |
-     | {ID}    | {phase} | {type} | {score}/100 | {count} | {brief_desc} |
-
-     (List all tasks with Self Review FAIL across all phases)
-
-     For detailed issue information, see individual phase reports above.
-
-     ---
-
-     ## Success Metrics
-
-     - **Task Completion Rate**: {total - fail_count} / {total} ({percent}%)
-     - **Self Review Pass Rate**: {pass_count} / {total} ({percent}%)
-     - **Average Score**: {avg_score}/100
-     - **Critical Issues**: {critical_count} (target: 0)
-     - **High Issues**: {high_count} (target: 0)
-
-     ---
-
-     ## Next Steps
-
-     **{If any failed tasks}**:
-     1. Review failed tasks in tasks.md
-     2. Review detailed issues in phase reports: `reports/self-review/self-review-phase-*.md`
-     3. Run `/grove.review` for cross-review by another AI agent
-     4. After cross-review, run `/grove.fix` to address identified issues
-     5. Priority: Address Critical and High severity issues first
-
-     **{If all passed}**:
-     - ✓ All {total} tasks passed Self Review
-     - ✓ Implementation quality verified
-     - Next: Consider running `/grove.review` for additional cross-review
-     - Ready for: Integration testing, deployment, or next feature
-
-     ---
-
-     ## Implementation Timeline
-
-     - Feature implementation started: {start_timestamp}
-     - Feature implementation completed: {end_timestamp}
-     - Total implementation time: {duration}
-     - Average time per task: {avg_time}
-     - Phases completed: {phase_count}
-
-     ---
-
-     ## Quality Indicators
-
-     **Strengths** (if all or most tasks passed):
-     - ✓ Specification compliance maintained
-     - ✓ Tech stack adherence verified
-     - ✓ Test coverage adequate
-     - ✓ Code quality standards met
-
-     **Areas for Improvement** (if failures exist):
-     - ⚠️ {fail_count} tasks require attention
-     - ⚠️ {critical_count + high_count} high-priority issues
-     - ⚠️ Review phase reports for specific improvements
-     ````
-
+   - Use template: `templates/final-self-review-summary-template.md`
+   - Fill placeholders with actual values:
+     - Date, Agent name, Phases completed
+     - Overall Summary table: Total Phases/Tasks, TDD Complete, Self Review PASS/FAIL, Overall Status
+     - Issues by Severity table (aggregated across all phases)
+     - Phase Breakdown table with links to phase reports
+     - Failed Tasks Summary table (if any)
+     - Success Metrics (Task Completion Rate, Self Review Pass Rate, Average Score, Critical/High Issues)
+     - Next Steps (conditional based on results)
+     - Implementation Timeline
+     - Quality Indicators (Strengths/Areas for Improvement)
    - Save report to: `FEATURE_DIR/reports/self-review/self-review-summary.md`
    - Display: `"📄 Final Self Review summary saved: {report_path}"`
 
@@ -805,26 +550,10 @@ Verify task {task_id} implementation and generate verification report.
 
 ---
 
-## CRITICAL NOTES
+## Guidelines
 
-**Workflow Enforcement**:
-- This command enforces STRICT adherence to TDD + Self Review workflow
-- **NEVER skip steps** even for "simple" or "setup" tasks
-- **NEVER mark checkboxes** without showing actual verification output
-- **NEVER assume** tests pass without running them
-- **VIOLATION = FAILURE**: If you skip any required step, restart from current task
-
-**Evidence Requirements**:
-- TDD Red: MUST show failed test output
-- TDD Green: MUST show passed test output
-- TDD Refactor: MUST show passed test output after refactoring
-- Self Review: MUST show verification score (0-100) and issue list
-
-**Prerequisites**:
-- This command assumes a complete task breakdown exists in tasks.md
-- If tasks are incomplete or missing, suggest running `/grove.tasks` first to regenerate the task list
-
-**Quality Assurance**:
-- Every task gets Self Review with 3 auto-fix attempts
-- Only tasks with score ≥ 80 are marked as complete
-- Failed tasks are documented with reason and suggested for `/grove.review` cross-review
+- Requires complete task breakdown in tasks.md (run `/grove.tasks` if missing)
+- STRICT TDD + Self Review workflow: NEVER skip steps, NEVER mark checkboxes without evidence
+- MUST show test output for Red/Green/Refactor phases and verification scores (0-100)
+- Every task gets Self Review with 3 auto-fix attempts; tasks with score ≥ 80 marked complete
+- Failed tasks after 3 attempts are documented and suggested for `/grove.review` cross-review

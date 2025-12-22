@@ -17,109 +17,93 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-You are updating the project constitution. The constitution is a TEMPLATE containing placeholder tokens in square brackets (e.g. `[PROJECT_NAME]`, `[PRINCIPLE_1_NAME]`). Your job is to (a) collect/derive concrete values, (b) fill the template precisely, and (c) propagate any amendments across dependent artifacts.
+You are updating the project constitution at `.grove/memory/constitution.md`. This file defines the non-negotiable principles and governance rules for this project.
 
 Follow this execution flow:
 
-1. Load the constitution template and check template usage setting:
-   - **First**, read `.grove/templates/constitution-template.md` (the master template) using Read tool
-   - **Check YAML frontmatter** for `enabled` field:
-     - If `enabled: true`: Template contains sample content that can be used as-is or as a starting point
-     - If `enabled: false` or missing: Template contains only placeholder structure
-   - **Then**, try to read `.grove/memory/constitution.md` using Read tool (previously filled version with concrete values)
-     - If Read succeeds → file exists
-     - If Read returns error (file not found) → file does NOT exist
+1. Load all available inputs:
+   - Read constitution template: `.grove/templates/constitution-template.md`
+   - Try to read existing constitution: `.grove/memory/constitution.md` (if exists)
+   - Check `$ARGUMENTS` for user instructions or new principles
 
-   **Decision logic**:
-   - If `.grove/memory/constitution.md` exists → **MUST ask user for confirmation. DO NOT proceed without user choice** (use AskUserQuestion tool if available):
-     - Use existing constitution as-is
-     - Use existing constitution as base and improve
-     - Ignore existing constitution and create from scratch
-     - Keep current constitution and cancel this request
-   - If `.grove/memory/constitution.md` does NOT exist AND `enabled: true` → **STOP and ask user which approach to use. NEVER use template without confirmation** (use AskUserQuestion tool if available):
-     - Use template as-is
-     - Use template as base and improve
-     - Ignore template and create from scratch
-     - Cancel this request
-     - **IMPORTANT**: Wait for user's explicit choice before proceeding
-   - If `.grove/memory/constitution.md` does NOT exist AND `enabled: false` → Create from scratch using placeholder structure (no template content available)
+2. Generate updated constitution (intelligent merge):
+   - Base structure: From constitution-template.md
+   - Existing content: From memory/constitution.md (if exists)
+   - User instructions: From $ARGUMENTS (if provided)
+   - Fill placeholders with meaningful values:
+     - `[PROJECT_NAME]`: Infer from directory name, README, or ask if unclear
+     - `[PRINCIPLE_N_NAME]` and `[PRINCIPLE_N_DESCRIPTION]`: Use existing or create from input
+     - `CONSTITUTION_VERSION`: Increment appropriately (MAJOR.MINOR.PATCH)
+     - `RATIFICATION_DATE`: Keep original or use today if new
+     - `LAST_AMENDED_DATE`: Update to today
+   - Ensure no unexplained bracket tokens remain
+   - Version increment rules:
+     - MAJOR (X.0.0): Backward incompatible changes (principle removal, major redefinition)
+     - MINOR (0.X.0): New principle added or materially expanded guidance
+     - PATCH (0.0.X): Clarifications, wording fixes, non-semantic refinements
 
-   - Identify every placeholder token of the form `[ALL_CAPS_IDENTIFIER]`
-   **IMPORTANT**: The user might require less or more principles than the ones used in the template. If a number is specified, respect that - follow the general template. You will update the doc accordingly.
+3. Consistency propagation (ensure dependent templates align):
+   - Read and update if needed:
+     - `.grove/templates/plan-template.md`: Constitution checks and principle alignment
+     - `.grove/templates/spec-template.md`: Scope/requirements alignment
+     - `.grove/templates/tasks-template.md`: Task categorization (observability, versioning, testing)
+     - `README.md`, `docs/quickstart.md` (if exist): Update principle references
 
-2. Collect/derive values for placeholders:
-   - If user input (conversation) supplies a value, use it.
-   - Otherwise infer from existing repo context (README, docs, prior constitution versions if embedded).
-   - For governance dates: `RATIFICATION_DATE` is the original adoption date (if unknown ask or mark TODO), `LAST_AMENDED_DATE` is today if changes are made, otherwise keep previous.
-   - `CONSTITUTION_VERSION` must increment according to semantic versioning rules:
-     - MAJOR: Backward incompatible governance/principle removals or redefinitions.
-     - MINOR: New principle/section added or materially expanded guidance.
-     - PATCH: Clarifications, wording, typo fixes, non-semantic refinements.
-   - If version bump type ambiguous, propose reasoning before finalizing.
-
-3. Draft the updated constitution content:
-   - Replace every placeholder with concrete text (no bracketed tokens left except intentionally retained template slots that the project has chosen not to define yet—explicitly justify any left).
-   - Preserve heading hierarchy and comments can be removed once replaced unless they still add clarifying guidance.
-   - Ensure each Principle section: succinct name line, paragraph (or bullet list) capturing non‑negotiable rules, explicit rationale if not obvious.
-   - Ensure Governance section lists amendment procedure, versioning policy, and compliance review expectations.
-
-4. Consistency propagation checklist (convert prior checklist into active validations):
-   - Read `.grove/templates/plan-template.md` and ensure any "Constitution Check" or rules align with updated principles.
-   - Read `.grove/templates/spec-template.md` for scope/requirements alignment—update if constitution adds/removes mandatory sections or constraints.
-   - Read `.grove/templates/tasks-template.md` and ensure task categorization reflects new or removed principle-driven task types (e.g., observability, versioning, testing discipline).
-   - Read any runtime guidance docs (e.g., `README.md`, `docs/quickstart.md`) if present. Update references to principles changed.
-
-5. Produce a Sync Impact Report (prepend as an HTML comment at top of the constitution file after update):
+4. Generate sync impact report (prepend as HTML comment):
    - Version change: old → new
-   - List of modified principles (old title → new title if renamed)
+   - Modified principles: old title → new title (if renamed)
    - Added sections
    - Removed sections
-   - Templates requiring updates (✅ updated / ⚠ pending) with file paths
-   - Follow-up TODOs if any placeholders intentionally deferred.
+   - Templates updated: ✅ updated / ⚠ pending (with file paths)
+   - Follow-up TODOs: if any placeholders intentionally deferred
 
-6. Validation before final output:
-   - No remaining unexplained bracket tokens.
-   - Version line matches report.
-   - Dates ISO format YYYY-MM-DD.
-   - Principles are declarative, testable, and free of vague language ("should" → replace with MUST/SHOULD rationale where appropriate).
+5. Validation before writing:
+   - No unexplained bracket tokens (except deferred with justification)
+   - Version matches report
+   - Dates in ISO format (YYYY-MM-DD)
+   - Principles are declarative, testable, specific
+   - Governance section complete (amendment procedure, versioning, compliance)
 
-7. Write the completed constitution to `.grove/memory/constitution.md` (overwrite if exists, create if not).
+6. Write constitution to `.grove/memory/constitution.md`:
+   - Overwrite if exists
+   - Create if new
+   - Note: Will be automatically synced to `.claude/rules/constitution.md` by prerequisite scripts on next command execution
 
-8. Sync constitution to Claude Code rules (if Claude Code environment detected):
+7. Display summary to user:
+   - Version change and bump rationale
+   - Key changes list
+   - Templates updated count
+   - Sync status (saved to memory, will sync to rules)
+   - Suggested commit message: `docs: update constitution to v[X.Y.Z] ([change summary])`
 
-   a. Check if running in Claude Code environment:
-      - Try to read `.claude/commands/grove.constitution.md` using Read tool
-      - If Read succeeds → Claude Code environment detected, proceed to step b
-      - If Read fails (file not found) → Not Claude Code environment, skip to step 9
+---
 
-   b. Sync constitution to Claude Code rules:
-      - Read the content from `.grove/memory/constitution.md`
-      - Add header comment and write to `.claude/rules/constitution.md`:
-        ```markdown
-        <!-- AUTO-SYNCED from .grove/memory/constitution.md -->
-        <!-- Do not edit this file directly. Update the source constitution instead. -->
-        <!-- Last synced: [CURRENT_DATE] -->
+## Formatting & Style Requirements
 
-        [CONSTITUTION CONTENT]
-        ```
-      - Report: "✓ Constitution synced to Claude Code rules (.claude/rules/constitution.md)"
-      - Explain: "Claude Code will now enforce these principles in all interactions"
+- Use Markdown headings exactly as in template (preserve hierarchy)
+- Keep lines under 100 characters for readability
+- Single blank line between sections
+- No trailing whitespace
+- Principles should be declarative and testable
+- Avoid vague language ("should" → use "MUST" with rationale)
 
-9. Output a final summary to the user with:
-   - New version and bump rationale.
-   - Claude Code rules sync status (if applicable).
-   - Any files flagged for manual follow-up.
-   - Suggested commit message (e.g., `docs: amend constitution to vX.Y.Z (principle additions + governance update)`).
+## Common Placeholders
 
-Formatting & Style Requirements:
+- `[PROJECT_NAME]`: Name of the project (e.g., "TaskFlow", "SpecDrive")
+- `[PRINCIPLE_N_NAME]`: Principle title (e.g., "Test-First Development")
+- `[PRINCIPLE_N_DESCRIPTION]`: Principle explanation and rationale
+- `[CONSTITUTION_VERSION]`: Semantic version (e.g., "1.0.0")
+- `[RATIFICATION_DATE]`: Original adoption date (YYYY-MM-DD)
+- `[LAST_AMENDED_DATE]`: Most recent amendment date (YYYY-MM-DD)
 
-- Use Markdown headings exactly as in the template (do not demote/promote levels).
-- Wrap long rationale lines to keep readability (<100 chars ideally) but do not hard enforce with awkward breaks.
-- Keep a single blank line between sections.
-- Avoid trailing whitespace.
+## Examples of Good Principles
 
-If the user supplies partial updates (e.g., only one principle revision), still perform validation and version decision steps.
+**Good** (specific, testable):
+- "Every feature must have passing tests before code review"
+- "All libraries expose CLI interface with JSON output"
+- "Breaking changes require MAJOR version bump"
 
-If critical info missing (e.g., ratification date truly unknown), insert `TODO(<FIELD_NAME>): explanation` and include in the Sync Impact Report under deferred items.
-
-Do not modify the master template at `.grove/templates/constitution-template.md`; always write the filled version to `.grove/memory/constitution.md`.
+**Bad** (vague, untestable):
+- "Code should be well-tested"
+- "Use good judgment for versioning"
+- "Follow best practices"

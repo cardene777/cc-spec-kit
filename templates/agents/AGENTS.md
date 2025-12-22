@@ -105,6 +105,50 @@ git rev-parse --git-dir 2>/dev/null
 
 ---
 
+## Command Handoffs (Next Steps)
+
+Grove commands use the `handoffs` YAML frontmatter to define recommended next steps after command completion.
+
+### How It Works
+
+1. **Define in YAML frontmatter**:
+   ```yaml
+   handoffs:
+     - label: Build Specification
+       agent: grove.specify
+       prompt: Create spec based on updated constitution. I want to build...
+     - label: Create Technical Plan
+       agent: grove.plan
+       prompt: Create a plan for the spec. I am building with...
+   ```
+
+2. **Automatic display**: After command completion, handoffs are automatically displayed to user
+
+3. **Format displayed to user**:
+   ```
+   ## Next Steps
+   Recommended commands:
+   - `/grove.specify` - Build Specification
+   - `/grove.plan` - Create Technical Plan
+   ```
+
+### Guidelines
+
+- **Keep focused**: 1-3 handoff options maximum
+- **Order by workflow**: List in typical execution sequence
+- **Clear labels**: Use actionable, descriptive labels
+- **Context in prompt**: Include enough context for user to understand what the next command will do
+- **Optional vs Required**: Use label text to indicate if step is recommended/optional (e.g., "Design UI/UX (recommended for user-facing features)")
+
+### Handoff Fields
+
+- `label`: Display text shown to user (keep concise)
+- `agent`: Agent name to invoke (e.g., `grove.specify`, `grove.plan`)
+- `prompt`: Pre-filled prompt context for the next command
+- `send`: (Optional) Set to `true` to auto-send without user confirmation
+
+---
+
 ## 3-Layer Quality Assurance
 
 ### Layer 1: TDD (MANDATORY)

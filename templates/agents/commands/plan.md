@@ -27,75 +27,65 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-1. Run {SCRIPT} from repo root and parse FEATURE_SPEC, IMPL_PLAN, SPECS_DIR, and BRANCH. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
+1. Run prerequisite script and parse paths:
+   - Execute {SCRIPT} from repository root
+   - Parse FEATURE_SPEC, IMPL_PLAN, SPECS_DIR, BRANCH from JSON output
+   - All paths must be absolute
+   - For single quotes in args: use escape syntax 'I'\''m Groot' or double-quote "I'm Groot"
 
-2. **Load context**: Read FEATURE_SPEC and `/memory/constitution.md`. Load IMPL_PLAN template (already copied).
-
-3. **Load design specifications (if available)**:
+2. Load context and design specifications:
+   - Read FEATURE_SPEC for feature requirements
+   - Read `.grove/memory/constitution.md` for project principles
+   - Load IMPL_PLAN template (already copied by script)
    - Check for `.grove/design/` directory
-   - If exists, read design specifications:
-     - `.grove/design/README.md` (design overview)
-     - `.grove/design/design-system.md` (colors, typography, spacing)
-     - `.grove/design/components/` (component specs and code)
-     - `.grove/design/layouts/` (layout specs and code)
-   - Extract design constraints:
-     - Required UI framework (React, Vue, Angular, etc.)
+   - If design exists, read specifications:
+     - README.md (design overview)
+     - foundations/ (color, typography, spacing, grid, motion, tone-and-voice)
+     - components/ (component specs and code)
+     - patterns/ (authentication, onboarding, error-handling, empty-state)
+     - tokens/ (tokens.json, mapping.md)
+   - Extract design constraints if available:
+     - UI framework (React, Vue, Angular, etc.)
      - CSS methodology (Tailwind, CSS Modules, CSS-in-JS, etc.)
-     - Design tokens (color palette, typography scale, spacing)
+     - Design tokens (color palette, typography, spacing)
      - Component architecture patterns
      - Responsive breakpoints
      - Accessibility requirements
-   - If design directory doesn't exist, note: "No design specifications found. Plan will focus on backend/logic only."
+   - If no design directory: note "No design specifications found. Plan will focus on backend/logic only."
 
-4. **Execute plan workflow**: Follow the structure in IMPL_PLAN template to:
-   - Fill Technical Context (mark unknowns as "NEEDS CLARIFICATION")
-   - **Integrate design constraints** into Technical Context:
+3. Execute plan workflow:
+   - Fill Technical Context section (mark unknowns as "NEEDS CLARIFICATION")
+   - Integrate design constraints into Technical Context:
      - UI framework choice (from design specs)
      - Styling approach (from design specs)
      - Component structure (from design specs)
    - Fill Constitution Check section from constitution
    - Evaluate gates (ERROR if violations unjustified)
-   - Phase 0: Generate research.md (resolve all NEEDS CLARIFICATION, include design-related research if needed)
+   - Phase 0: Generate research.md (resolve all NEEDS CLARIFICATION, include design-related research)
    - Phase 1: Generate data-model.md, contracts/, quickstart.md
-   - Phase 1: **Include design implementation guidance**:
+   - Phase 1: Include design implementation guidance:
      - Map design components to technical implementation
      - Specify how to integrate design system tokens
      - Document component implementation order
-   - Phase 1: Update agent context by running the agent script
+   - Phase 1: Update agent context by running agent script
    - Re-evaluate Constitution Check post-design
 
-5. **Stop and report**: Command ends after Phase 1 planning. Report branch, IMPL_PLAN path, and generated artifacts.
-
-   **CRITICAL - MANDATORY Next Step Output**:
-   After reporting artifacts, you MUST output the next step. This is NOT optional.
-
-   Output EXACTLY:
-   ```
-   ## Next Steps
-
-   Plan has been created successfully!
-
-   To create implementation tasks, run:
-   /grove.tasks
-
-   This will break down the plan into specific, actionable development tasks.
-   ```
-
-   **IMPORTANT**:
-   - This next steps section is MANDATORY and must ALWAYS be displayed
-   - Do NOT replace with generic text like "review the plan" or "start implementation"
-   - The `/grove.tasks` command MUST be explicitly shown
+4. Stop and report:
+   - Command ends after Phase 1 planning
+   - Report branch name
+   - Report IMPL_PLAN path
+   - Report generated artifacts (research.md, data-model.md, contracts/, quickstart.md)
 
 ## Phases
 
 ### Phase 0: Outline & Research
 
-1. **Extract unknowns from Technical Context** above:
+1. Extract unknowns from Technical Context:
    - For each NEEDS CLARIFICATION → research task
    - For each dependency → best practices task
    - For each integration → patterns task
 
-2. **Generate and dispatch research agents**:
+2. Generate and dispatch research agents:
 
    ```text
    For each unknown in Technical Context:
@@ -104,7 +94,8 @@ You **MUST** consider the user input before proceeding (if not empty).
      Task: "Find best practices for {tech} in {domain}"
    ```
 
-3. **Consolidate findings** in `research.md` using format:
+3. Consolidate findings in `research.md`:
+   - Use format: Decision, Rationale, Alternatives considered
    - Decision: [what was chosen]
    - Rationale: [why chosen]
    - Alternatives considered: [what else evaluated]
@@ -115,17 +106,17 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 **Prerequisites:** `research.md` complete
 
-1. **Extract entities from feature spec** → `data-model.md`:
+1. Extract entities from feature spec → `data-model.md`:
    - Entity name, fields, relationships
    - Validation rules from requirements
    - State transitions if applicable
 
-2. **Generate API contracts** from functional requirements:
+2. Generate API contracts from functional requirements:
    - For each user action → endpoint
    - Use standard REST/GraphQL patterns
    - Output OpenAPI/GraphQL schema to `/contracts/`
 
-3. **Agent context update**:
+3. Agent context update:
    - Run `{AGENT_SCRIPT}`
    - These scripts detect which AI agent is in use
    - Update the appropriate agent-specific context file

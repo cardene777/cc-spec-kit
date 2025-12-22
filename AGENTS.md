@@ -220,13 +220,49 @@ Directories defined in AGENT_CONFIG but not actively maintained:
 
 ### Markdown Format (Claude, Codex, Cursor, etc.)
 
-```markdown
+**YAML Frontmatter**:
+```yaml
 ---
 description: "Command description"
+argument-hint: "<feature description>"  # Optional
+handoffs:  # Define next steps
+  - label: Next Command Name
+    agent: grove.specify
+    prompt: Pre-filled context for next command
+  - label: Optional Step (recommended)
+    agent: grove.design
+    prompt: Create design based on spec
+    send: true  # Auto-send without confirmation (optional)
+scripts:  # Prerequisite scripts
+  sh: scripts/bash/check-prerequisites.sh --json
+  ps: scripts/powershell/check-prerequisites.ps1 -Json
 ---
-
-Command content with {SCRIPT} and $ARGUMENTS placeholders.
 ```
+
+**Outline Structure** (numbered list with hyphen sub-steps):
+```markdown
+## Outline
+
+Follow this execution flow:
+
+1. First major step:
+   - Sub-step detail
+   - Another sub-step
+   - Example output or command
+
+2. Second major step:
+   - Load inputs
+   - Process data
+   - Write results
+
+3. Third major step (if applicable)
+```
+
+**Key Rules**:
+- Use numbered list (1., 2., 3.) for major steps
+- Use hyphen (-) for sub-steps (NOT a., b., c. or bold)
+- NO explicit "Next Steps" section (use handoffs instead)
+- Handoffs auto-display after command completion
 
 ### TOML Format (Gemini, Qwen)
 
