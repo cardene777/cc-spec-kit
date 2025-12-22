@@ -78,6 +78,33 @@ done
 SCRIPT_DIR="$(CDPATH="" cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
+# ============================================================
+# Constitution Sync (Automatic)
+# ============================================================
+# Sync constitution from memory to rules if needed
+RULES_CONSTITUTION=".claude/rules/constitution.md"
+MEMORY_CONSTITUTION=".grove/memory/constitution.md"
+
+# Check if sync is needed
+NEEDS_SYNC=false
+
+if [[ ! -f "$RULES_CONSTITUTION" ]]; then
+    NEEDS_SYNC=true
+elif [[ $(wc -l < "$RULES_CONSTITUTION" 2>/dev/null || echo 0) -le 4 ]]; then
+    NEEDS_SYNC=true
+elif grep -q "\[PROJECT_NAME\]" "$RULES_CONSTITUTION" 2>/dev/null; then
+    NEEDS_SYNC=true
+elif grep -q "This file will be populated when you run" "$RULES_CONSTITUTION" 2>/dev/null; then
+    NEEDS_SYNC=true
+fi
+
+# Perform sync if needed and source exists
+if [[ "$NEEDS_SYNC" == "true" ]] && [[ -f "$MEMORY_CONSTITUTION" ]]; then
+    mkdir -p .claude/rules/
+    cat "$MEMORY_CONSTITUTION" > "$RULES_CONSTITUTION"
+    echo "✓ Constitution synced from memory to rules" >&2
+fi
+
 # Get feature paths and validate branch
 eval $(get_feature_paths)
 check_feature_branch "$CURRENT_BRANCH" "$HAS_GIT" || exit 1

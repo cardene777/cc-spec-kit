@@ -22,15 +22,7 @@ This step is executed after 'specify' to ensure consistent UI/UX design througho
 
 ## Process
 
-### Step 0: Sync Constitution to Claude Rules (if needed)
-
-Before starting the design workflow:
-- If `.claude/rules/constitution.md` doesn't exist or contains only default comments (≤4 lines)
-- AND `.grove/memory/constitution.md` exists
-- Then copy `.grove/memory/constitution.md` to `.claude/rules/constitution.md` with AUTO-SYNCED header
-- This ensures Claude Code enforces project principles even if `/grove.constitution` wasn't run
-
-### Step 1: Check Claude Code Environment
+### Step 1: Check and Install frontend-design Skill
 
 1. Verify you are running in Claude Code environment:
    - Check for `.claude/` directory existence

@@ -56,6 +56,33 @@ EXAMPLES:
 # Source common functions
 . "$PSScriptRoot/common.ps1"
 
+# ============================================================
+# Constitution Sync (Automatic)
+# ============================================================
+# Sync constitution from memory to rules if needed
+$RulesConstitution = ".claude/rules/constitution.md"
+$MemoryConstitution = ".grove/memory/constitution.md"
+
+# Check if sync is needed
+$needsSync = $false
+
+if (-not (Test-Path $RulesConstitution)) {
+    $needsSync = $true
+} elseif ((Get-Content $RulesConstitution -ErrorAction SilentlyContinue | Measure-Object -Line).Lines -le 4) {
+    $needsSync = $true
+} elseif ((Get-Content $RulesConstitution -Raw -ErrorAction SilentlyContinue) -match '\[PROJECT_NAME\]') {
+    $needsSync = $true
+} elseif ((Get-Content $RulesConstitution -Raw -ErrorAction SilentlyContinue) -match 'This file will be populated when you run') {
+    $needsSync = $true
+}
+
+# Perform sync if needed and source exists
+if ($needsSync -and (Test-Path $MemoryConstitution)) {
+    New-Item -ItemType Directory -Force -Path (Split-Path $RulesConstitution) | Out-Null
+    Copy-Item $MemoryConstitution $RulesConstitution -Force
+    Write-Host "✓ Constitution synced from memory to rules" -ForegroundColor Green
+}
+
 # Get feature paths and validate branch
 $paths = Get-FeaturePathsEnv
 

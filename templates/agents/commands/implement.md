@@ -16,7 +16,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-1. Run `{SCRIPT}` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
+1. Run {SCRIPT} from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
 2. **Check checklists status** (if FEATURE_DIR/checklists/ exists):
    - Scan all checklist files in the checklists/ directory
@@ -49,20 +49,14 @@ You **MUST** consider the user input before proceeding (if not empty).
      - Display the table showing all checklists passed
      - Automatically proceed to step 3
 
-3. **Prerequisites Check (TDD Integration)**:
-   - **REQUIRED**: Verify spec.md exists (ERROR if missing: "spec.md not found. Please run /grove.spec first.")
-   - **REQUIRED**: Verify plan.md exists (ERROR if missing: "plan.md not found. Please run /grove.plan first.")
-   - **REQUIRED**: Verify tasks.md exists (ERROR if missing: "tasks.md not found. Please run /grove.tasks first.")
-   - **OPTIONAL**: Try to read `.grove/design/README.md` to check if design specifications exist for UI implementation guidance
-
-4. Load and analyze the implementation context:
-   - **REQUIRED**: Read tasks.md for the complete task list and execution plan
-   - **REQUIRED**: Read plan.md for tech stack, architecture, and file structure
-   - **REQUIRED**: Read spec.md for feature requirements
-   - **OPTIONAL**: Try to read data-model.md using Read tool (if Read succeeds, use for entities and relationships; if error, skip)
-   - **OPTIONAL**: Try to read contracts/ files using Read tool (if exist, use for API specifications and test requirements; if not, skip)
-   - **OPTIONAL**: Try to read research.md using Read tool (if exists, use for technical decisions and constraints; if not, skip)
-   - **OPTIONAL**: Try to read quickstart.md using Read tool (if exists, use for integration scenarios; if not, skip)
+3. Load and analyze the implementation context:
+   - **REQUIRED**: Read FEATURE_DIR/tasks.md for the complete task list and execution plan
+   - **REQUIRED**: Read FEATURE_DIR/plan.md for tech stack, architecture, and file structure
+   - **REQUIRED**: Read FEATURE_DIR/spec.md for feature requirements
+   - **OPTIONAL**: Try to read FEATURE_DIR/data-model.md using Read tool (if Read succeeds, use for entities and relationships; if error, skip)
+   - **OPTIONAL**: Try to read FEATURE_DIR/contracts/ files using Read tool (if exist, use for API specifications and test requirements; if not, skip)
+   - **OPTIONAL**: Try to read FEATURE_DIR/research.md using Read tool (if exists, use for technical decisions and constraints; if not, skip)
+   - **OPTIONAL**: Try to read FEATURE_DIR/quickstart.md using Read tool (if exists, use for integration scenarios; if not, skip)
    - **OPTIONAL**: Try to read `.grove/design/README.md` using Read tool (if exists, read design specifications for UI implementation):
      - design-system.md (design tokens: colors, typography, spacing)
      - components/ (component specifications and code)
@@ -182,19 +176,44 @@ You **MUST** consider the user input before proceeding (if not empty).
       - [X] Refactor: Cleaned up code while keeping tests green ← MUST show passed test output
       - **NEVER mark [X] based on assumption or "it should work"**
 
-   **7.2.2. Self Review (background execution) - MANDATORY UNLESS SKIPPED**:
+   **7.2.2. Documentation & Self Review (MANDATORY)**:
 
-   **Skip condition**: ONLY skip if `--skip-self-review` flag is present in `$ARGUMENTS`.
-   **Otherwise**: Launch Self Review in background (Claude Code) or execute synchronously (others).
+   **Skip condition**: ONLY skip if `--skip-documentation-and-review` flag is present in `$ARGUMENTS`.
+   **Otherwise**: Launch BOTH agents in parallel (Claude Code) or sequentially (others).
 
-   **A. Claude Code Environment (BACKGROUND EXECUTION with report generation)**:
+   **A. Claude Code Environment (PARALLEL BACKGROUND EXECUTION)**:
 
-   - **Determine report path**: `FEATURE_DIR/reports/self-review/task-{task_id}.md`
-   - **Create report directory if needed**: `mkdir -p FEATURE_DIR/reports/self-review/`
-   - **Launch verification agent in background using Task tool**
+   Launch both agents in parallel for maximum efficiency:
 
-   **Launch Method**:
-   Use Task tool with the following parameters:
+   **1. Launch Documentation Agent**:
+
+   ```python
+   Task(
+       description="Update documentation for {task_id}",
+       prompt="""
+Update documentation for task {task_id}.
+
+**Input Parameters**:
+- task_id: {task_id}
+- task_description: {task_description from tasks.md}
+- task_files: [{list of file paths from task}]
+- source_dir: {auto-detected or from plan.md}
+- feature_dir: {FEATURE_DIR}
+
+Follow the documentation workflow defined in documentation.md.
+""",
+       subagent_type="documentation-agent",
+       run_in_background=True  # ← CRITICAL: Must run in background
+   )
+   ```
+
+   - Store job ID: `doc_jobs[task_id] = job_id`
+   - Display: `"📚 {task_id} Documentation update launched (job: {job_id})"`
+
+   **2. Launch Self Review Agent**:
+
+   - Determine report path: `FEATURE_DIR/reports/self-review/task-{task_id}.md`
+   - Create report directory if needed: `mkdir -p FEATURE_DIR/reports/self-review/`
 
    ```python
    Task(
@@ -223,61 +242,29 @@ Verify task {task_id} implementation and generate verification report.
    )
    ```
 
-   **After Launch**:
-   - Store job ID: `background_jobs[task_id] = job_id`
-   - Display: `"🔄 {task_id} Self Review launched in background (job: {job_id})"`
+   - Store job ID: `review_jobs[task_id] = job_id`
+   - Display: `"🔄 {task_id} Self Review launched (job: {job_id})"`
    - Display: `"   Report will be saved to: reports/self-review/task-{task_id}.md"`
-   - **Immediately proceed to step 8.2.2b** (don't wait for result)
 
-   **B. Codex or Other Environments (SYNCHRONOUS EXECUTION)**:
+   **3. Immediately proceed to step 8.2.3** (don't wait for results)
 
-   - **MUST** use verification template: `.grove/templates/verification-template.md`
-   - **Execute verification synchronously**:
+   **B. Codex or Other Environments (SEQUENTIAL EXECUTION)**:
+
+   **1. Update Documentation**:
+   - Identify all modified/created files from this task
+   - Update documentation for each file
+   - Mark "Documentation" checkbox as [X] in tasks.md
+
+   **2. Execute Self Review**:
+   - MUST use verification template: `.grove/templates/verification-template.md`
+   - Execute verification synchronously:
      1. Read task context (spec.md, plan.md, tasks.md)
      2. Execute verification checklist (all 8 items)
      3. Calculate score (0-100) based on severity deductions
      4. Document issues if found
-   - **Display verification results immediately**
-   - **Proceed to step 8.2.2b after completion**
+   - Display verification results immediately
 
-   **8.2.2b. Documentation Update (background execution) - Claude Code ONLY**:
-
-   **Claude Code Environment (BACKGROUND EXECUTION)**:
-
-   - **Launch documentation agent in background using Task tool**
-
-   **Launch Method**:
-   Use Task tool with the following parameters:
-
-   ```python
-   Task(
-       description="Update documentation for {task_id}",
-       prompt="""
-Update documentation for task {task_id}.
-
-**Input Parameters**:
-- task_id: {task_id}
-- task_description: {task_description from tasks.md}
-- task_files: [{list of file paths from task}]
-- source_dir: {auto-detected or from plan.md}
-- feature_dir: {FEATURE_DIR}
-
-Follow the documentation workflow defined in documentation.md.
-""",
-       subagent_type="documentation-agent",
-       run_in_background=True  # ← CRITICAL: Must run in background
-   )
-   ```
-
-   **After Launch**:
-   - Store job ID: `doc_jobs[task_id] = job_id`
-   - Display: `"📚 {task_id} Documentation update launched in background (job: {job_id})"`
-   - **Immediately proceed to step 8.2.3** (don't wait for result)
-
-   **Codex or Other Environments**:
-   - Skip documentation update (not supported in background)
-   - Documentation can be updated manually as needed
-   - **Proceed to step 8.2.3**
+   **3. Proceed to step 8.2.3 after both complete**
 
    **8.2.3. Update tasks.md (TDD checklist only for now)**:
 
@@ -809,80 +796,12 @@ Follow the documentation workflow defined in documentation.md.
 
    **11.3 Display Final Summary**:
 
-   - Display comprehensive summary:
-     ```
-     ╔═══════════════════════════════════════════════════════════════╗
-     ║            IMPLEMENTATION COMPLETE - FINAL SUMMARY             ║
-     ╠═══════════════════════════════════════════════════════════════╣
-     ║ Feature:            {feature_name}                            ║
-     ║ Total Phases:       {phase_count}                             ║
-     ║ Total Tasks:        {total}                                   ║
-     ║                                                                ║
-     ║ TDD Cycle:          {total} / {total} (100%) ✓               ║
-     ║ Self Review PASS:   {pass} / {total} ({percent}%)            ║
-     ║ Self Review FAIL:   {fail} / {total} ({percent}%)            ║
-     ║                                                                ║
-     ║ Critical Issues:    {critical_count}                          ║
-     ║ High Issues:        {high_count}                              ║
-     ║ Medium Issues:      {medium_count}                            ║
-     ║ Low Issues:         {low_count}                               ║
-     ║                                                                ║
-     ║ Overall Status:     {✓ PASS / ✗ FAIL}                        ║
-     ╚═══════════════════════════════════════════════════════════════╝
-
-     Phase-by-Phase Results:
-     | Phase   | Tasks | PASS      | FAIL     | Status   | Report |
-     |---------|-------|-----------|----------|----------|--------|
-     | Phase 1 | 5     | 4 (80%)   | 1 (20%)  | ✗ FAIL   | self-review-phase-1.md |
-     | Phase 2 | 7     | 7 (100%)  | 0 (0%)   | ✓ PASS   | self-review-phase-2.md |
-     | Phase 3 | 10    | 9 (90%)   | 1 (10%)  | ✗ FAIL   | self-review-phase-3.md |
-
-     {If any failures}:
-     ⚠️  ATTENTION REQUIRED: {fail_count} tasks failed Self Review
-
-     Failed Tasks:
-     - T002 (Phase 1): Score 65/100 - 3 issues (1 Critical, 2 Medium)
-     - T015 (Phase 3): Score 70/100 - 2 issues (1 High, 1 Low)
-
-     Recommended Actions:
-     1. Review detailed phase reports in: reports/self-review/
-     2. Run `/grove.review` for cross-review by another AI agent
-     3. After cross-review, run `/grove.fix` to address issues
-     4. Priority: Fix Critical and High severity issues first
-
-     {If all passed}:
-     🎉 SUCCESS: All {total} tasks passed Self Review!
-
-     Quality Metrics:
-     - Average Score: {avg_score}/100
-     - Task Completion: 100%
-     - Self Review Pass Rate: 100%
-
-     Next Steps:
-     - Consider running `/grove.review` for additional cross-review
-     - Ready for integration testing and deployment
-     ```
-
-   - Display report locations:
-     ```
-     📊 Self Review Reports:
-     - Summary: {FEATURE_DIR}/reports/self-review/self-review-summary.md
-     - Phase 1: {FEATURE_DIR}/reports/self-review/self-review-phase-1.md
-     - Phase 2: {FEATURE_DIR}/reports/self-review/self-review-phase-2.md
-     ...
-     ```
-
-   - Display next command suggestions:
-     ```
-     💡 Suggested Next Commands:
-     {If failures}:
-     - `/grove.review` - Cross-review by another AI agent
-     - `/grove.fix` - Auto-fix issues after cross-review
-
-     {If all passed}:
-     - `/grove.review` - Optional additional quality check
-     - `/grove.taskstoissues` - Convert tasks to GitHub issues for tracking
-     ```
+   - Display: `"📄 Implementation complete. Final Self Review summary saved: {FEATURE_DIR}/reports/self-review/self-review-summary.md"`
+   - Display overall status: `"Overall Status: {✓ PASS / ✗ FAIL} - {pass_count}/{total} tasks passed Self Review"`
+   - If any failures: Display: `"⚠️  {fail_count} tasks require attention. See summary report for details."`
+   - Display next command suggestion:
+     - If failures: `"Next: Run /grove.review for cross-review, then /grove.fix to address issues"`
+     - If all passed: `"Next: Consider running /grove.review for additional quality check"`
 
 ---
 

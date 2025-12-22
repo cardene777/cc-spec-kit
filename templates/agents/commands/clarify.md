@@ -26,13 +26,9 @@ Note: This clarification workflow is expected to run (and be completed) BEFORE i
 
 Execution steps:
 
-0. **Sync Constitution to Claude Rules** (if needed):
-   - If `.claude/rules/constitution.md` doesn't exist or contains only default comments (≤4 lines)
-   - AND `.grove/memory/constitution.md` exists
-   - Then copy `.grove/memory/constitution.md` to `.claude/rules/constitution.md` with AUTO-SYNCED header
-   - This ensures Claude Code enforces project principles even if `/grove.constitution` wasn't run
+1. Run {SCRIPT} from repo root and parse FEATURE_DIR and FEATURE_SPEC. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
-1. Run `{SCRIPT}` from repo root **once** (combined `--json --paths-only` mode / `-Json -PathsOnly`). Parse minimal JSON payload fields:
+2. Load specification. Parse minimal JSON payload fields:
    - `FEATURE_DIR`
    - `FEATURE_SPEC`
    - (Optionally capture `IMPL_PLAN`, `TASKS` for future chained flows.)

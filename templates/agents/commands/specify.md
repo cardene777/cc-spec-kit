@@ -28,13 +28,9 @@ The text the user typed after `/grove.specify` in the triggering message **is** 
 
 Given that feature description, do this:
 
-0. **Sync Constitution to Claude Rules** (if needed):
-   - If `.claude/rules/constitution.md` doesn't exist or contains only default comments (≤4 lines)
-   - AND `.grove/memory/constitution.md` exists
-   - Then copy `.grove/memory/constitution.md` to `.claude/rules/constitution.md` with AUTO-SYNCED header
-   - This ensures Claude Code enforces project principles even if `/grove.constitution` wasn't run
+1. Run {SCRIPT} from repo root to setup feature branch and get paths. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
-1. **Load the spec template and check template usage setting**:
+2. **Check template usage setting and get user choice**:
    - **First**, read `.grove/templates/spec-template.md` (the master template)
    - **Check YAML frontmatter** for `enabled` field:
      - If `enabled: true`: Template contains sample content that can be used as reference for structure and guidance

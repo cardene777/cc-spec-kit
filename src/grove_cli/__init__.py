@@ -1726,18 +1726,22 @@ def install_common_templates(project_dir: Path, lang: str, script_type: str, tra
         scripts_dest = project_dir / ".grove" / "scripts"
         scripts_dest.mkdir(parents=True, exist_ok=True)
 
-        # Copy only the selected script type directly to .grove/scripts/
+        # Copy scripts maintaining bash/powershell subdirectory structure
         if script_type == "sh":
             bash_src = scripts_root / "bash"
             if bash_src.exists():
+                bash_dest = scripts_dest / "bash"
+                bash_dest.mkdir(parents=True, exist_ok=True)
                 for script_file in bash_src.glob("*.sh"):
-                    shutil.copy2(script_file, scripts_dest / script_file.name)
+                    shutil.copy2(script_file, bash_dest / script_file.name)
                     copied += 1
         elif script_type == "ps":
             ps_src = scripts_root / "powershell"
             if ps_src.exists():
+                ps_dest = scripts_dest / "powershell"
+                ps_dest.mkdir(parents=True, exist_ok=True)
                 for script_file in ps_src.glob("*.ps1"):
-                    shutil.copy2(script_file, scripts_dest / script_file.name)
+                    shutil.copy2(script_file, ps_dest / script_file.name)
                     copied += 1
 
     # Copy memory directory structure

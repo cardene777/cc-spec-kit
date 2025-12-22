@@ -25,13 +25,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-0. **Sync Constitution to Claude Rules** (if needed):
-   - If `.claude/rules/constitution.md` doesn't exist or contains only default comments (≤4 lines)
-   - AND `.grove/memory/constitution.md` exists
-   - Then copy `.grove/memory/constitution.md` to `.claude/rules/constitution.md` with AUTO-SYNCED header
-   - This ensures Claude Code enforces project principles even if `/grove.constitution` wasn't run
-
-1. **Setup**: Run `{SCRIPT}` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
+1. Run {SCRIPT} from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
 2. **Load design documents**: Read from FEATURE_DIR:
    - **Required**: plan.md (tech stack, libraries, structure), spec.md (user stories with priorities)
@@ -129,35 +123,49 @@ The tasks.md should be immediately executable - each task must be specific enoug
 
 ### Checklist Format (REQUIRED)
 
-Every task MUST strictly follow this format:
+Every task MUST follow this complete format with all sub-sections:
 
-```text
-- [ ] [TaskID] [P?] [Story?] Description with file path
+```markdown
+## Task: [Task Description]
+
+- [ ] T{ID} [{P}] [{Story}] Description with exact file path
+
+### Related Spec
+- spec/[filename].md#[section]
+
+### TDD Checklist (per task)
+- [ ] Red: Added new tests and confirmed they fail
+- [ ] Green: Implemented minimal code to pass tests
+- [ ] Refactor: Cleaned up code while keeping tests green
+
+### Documentation
+- [ ] Updated documentation for modified/created files
+
+### Review
+- [ ] Self Review: Implementation environment AI automatic verification completed
+- [ ] Cross Review: Other AI Agent additional verification completed
+
+### Constraints
+- Do not modify the spec
+- Do not touch other tasks
 ```
 
 **Format Components**:
 
-1. **Checkbox**: ALWAYS start with `- [ ]` (markdown checkbox)
-2. **Task ID**: Sequential number (T001, T002, T003...) in execution order
-3. **[P] marker**: Include ONLY if task is parallelizable (different files, no dependencies on incomplete tasks)
-4. **[Story] label**: REQUIRED for user story phase tasks only
-   - Format: [US1], [US2], [US3], etc. (maps to user stories from spec.md)
-   - Setup phase: NO story label
-   - Foundational phase: NO story label  
-   - User Story phases: MUST have story label
-   - Polish phase: NO story label
+1. **Checkbox**: `- [ ]` (pending), `- [~]` (in-progress), `- [x]` (completed)
+2. **Task ID**: T{sequential number} - T001, T002, T003...
+3. **[P] marker**: OPTIONAL - for parallelizable tasks only
+4. **[Story] label**: CONDITIONAL - `[US1]`, `[US2]` etc.
+   - Setup/Foundational/Polish phases: NO label
+   - User Story phases: REQUIRED
 5. **Description**: Clear action with exact file path
+6. **All sub-sections**: REQUIRED (Related Spec, TDD Checklist, Documentation, Review, Constraints)
 
 **Examples**:
 
-- ✅ CORRECT: `- [ ] T001 Create project structure per implementation plan`
-- ✅ CORRECT: `- [ ] T005 [P] Implement authentication middleware in src/middleware/auth.py`
-- ✅ CORRECT: `- [ ] T012 [P] [US1] Create User model in src/models/user.py`
-- ✅ CORRECT: `- [ ] T014 [US1] Implement UserService in src/services/user_service.py`
-- ❌ WRONG: `- [ ] Create User model` (missing ID and Story label)
-- ❌ WRONG: `T001 [US1] Create model` (missing checkbox)
-- ❌ WRONG: `- [ ] [US1] Create User model` (missing Task ID)
-- ❌ WRONG: `- [ ] T001 [US1] Create model` (missing file path)
+- ✅ CORRECT: Full format with all sub-sections (see template above)
+- ❌ WRONG: Missing sub-sections
+- ❌ WRONG: Task without TDD Checklist or Review sections
 
 ### Task Organization
 
@@ -192,45 +200,3 @@ Every task MUST strictly follow this format:
   - Within each story: Tests (if requested) → Models → Services → Endpoints → Integration
   - Each phase should be a complete, independently testable increment
 - **Final Phase**: Polish & Cross-Cutting Concerns
-
-### Task Format with Sub-checks
-
-**IMPORTANT**: Each task should include:
-1. **TDD checklist** - Confirmation checklist to verify TDD was properly executed
-2. **Review sub-checks** - Self Review and Cross Review tracking
-
-**Task Template**:
-
-```markdown
-## Task: [Task Description]
-
-- [ ] T001 Create database connection logic in src/db.py
-
-### Related Spec
-- spec/[filename].md#[section]
-
-### TDD Checklist (per task)
-- [ ] Red: Added new tests and confirmed they fail
-- [ ] Green: Implemented minimal code to pass tests
-- [ ] Refactor: Cleaned up code while keeping tests green
-
-### Review
-- [ ] Self Review: Implementation environment AI automatic verification completed
-- [ ] Cross Review: Other AI Agent additional verification completed
-
-### Constraints
-- Do not modify the spec
-- Do not touch other tasks
-```
-
-**Key Points**:
-- **Review Sub-checks**:
-  - Each task has 2 sub-checks: Self Review and Cross Review
-  - Self Review: Checked by `/grove.implement` after task completion (automatic)
-  - Cross Review: Checked by `/grove.review` from different AI Agent (manual)
-- **TDD Checklist**:
-  - The TDD checklist is checked **once per task** upon completion
-  - It verifies that the TDD cycle (Red→Green→Refactor) was executed during implementation
-  - It is NOT a step-by-step guide, but a post-implementation confirmation
-  - If a checklist item cannot be completed, document the reason
-  - The checklist confirms observability: "Was TDD actually executed?"
