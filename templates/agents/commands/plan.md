@@ -53,7 +53,7 @@ You **MUST** consider the user input before proceeding (if not empty).
      - Accessibility requirements
    - If no design directory: note "No design specifications found. Plan will focus on backend/logic only."
 
-3. Execute plan workflow:
+3. Generate plan content:
    - Fill Technical Context section (mark unknowns as "NEEDS CLARIFICATION")
    - Integrate design constraints into Technical Context:
      - UI framework choice (from design specs)
@@ -70,7 +70,28 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Phase 1: Update agent context by running agent script
    - Re-evaluate Constitution Check post-design
 
-4. Stop and report:
+4. Display generated plan to user:
+   - Show complete plan content
+   - Highlight key sections: Technical Context, Tech Stack, File Structure, Constitution Check
+   - Display target file path: IMPL_PLAN
+   - Display any NEEDS CLARIFICATION markers or constitution violations
+
+5. Request user confirmation:
+   - Use AskUserQuestion tool
+   - Question: "Create plan with this content?"
+   - Options:
+     - "Yes, create plan" (Recommended)
+     - "No, cancel operation"
+   - If user selects "No" or "Other" with cancel intent:
+     - Display: "Plan creation cancelled. No files were modified."
+     - HALT execution
+   - If user selects "Yes": Proceed to step 6
+
+6. Write plan to IMPL_PLAN:
+   - Create file at specified path
+   - Write generated content
+
+7. Stop and report:
    - Command ends after Phase 1 planning
    - Report branch name
    - Report IMPL_PLAN path

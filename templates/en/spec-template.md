@@ -1,5 +1,4 @@
 ---
-enabled: false
 description: Feature Specification Template
 version: 1.0.0
 ---

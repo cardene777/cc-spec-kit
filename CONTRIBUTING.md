@@ -37,7 +37,7 @@ On [GitHub Codespaces](https://github.com/features/codespaces) it's even simpler
 
 1. Fork and clone the repository
 1. Configure and install the dependencies: `uv sync`
-1. Make sure the CLI works on your machine: `uv run specify --help`
+1. Make sure the CLI works on your machine: `uv run grove --help`
 1. Create a new branch: `git checkout -b my-branch-name`
 1. Make your change, add tests, and make sure everything still works
 1. Test the CLI functionality with a sample project if relevant
@@ -48,23 +48,23 @@ Here are a few things you can do that will increase the likelihood of your pull 
 
 - Follow the project's coding conventions.
 - Write tests for new functionality.
-- Update documentation (`README.md`, `spec-driven.md`) if your changes affect user-facing features.
+- Update documentation (`README.md`, `AGENTS.md`) if your changes affect user-facing features.
 - Keep your change as focused as possible. If there are multiple changes you would like to make that are not dependent upon each other, consider submitting them as separate pull requests.
 - Write a [good commit message](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
-- Test your changes with the Spec-Driven Development workflow to ensure compatibility.
+- Test your changes with the Grove Spec-Driven Development workflow to ensure compatibility.
 
 ## Development workflow
 
 When working on grove:
 
-1. Test changes with the `specify` CLI commands (`/grove.specify`, `/grove.plan`, `/grove.tasks`) in your coding agent of choice
+1. Test changes with Grove CLI commands (`/grove.specify`, `/grove.plan`, `/grove.tasks`) in your coding agent of choice
 2. Verify templates are working correctly in `templates/` directory
 3. Test script functionality in the `scripts/` directory
-4. Ensure memory files (`memory/constitution.md`) are updated if major process changes are made
+4. Ensure memory files (`.grove/memory/constitution.md`) are updated if major process changes are made
 
 ### Testing template and command changes locally
 
-Running `uv run specify init` pulls released packages, which won’t include your local changes.  
+Running `uv run grove init` pulls released packages, which won't include your local changes.
 To test your templates, commands, and other changes locally, follow these steps:
 
 1. **Create release packages**
@@ -72,13 +72,17 @@ To test your templates, commands, and other changes locally, follow these steps:
    Run the following command to generate the local packages:
 
    ```bash
-   ./.github/workflows/scripts/create-release-packages.sh v1.0.0
+   ./.github/workflows/scripts/create-release-packages.sh v0.1.6
    ```
 
 2. **Copy the relevant package to your test project**
 
    ```bash
-   cp -r .genreleases/sdd-copilot-package-sh/. <path-to-test-project>/
+   # For Claude Code
+   cp -r .genreleases/grove-template-claude-sh/. <path-to-test-project>/
+
+   # For Codex (global installation - installs to ~/.codex/prompts/)
+   uv run grove update-commands
    ```
 
 3. **Open and test the agent**

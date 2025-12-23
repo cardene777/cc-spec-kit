@@ -47,7 +47,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Create parallel execution examples per user story
    - Validate task completeness (each user story has all needed tasks, independently testable)
 
-4. Generate tasks.md:
+4. Generate tasks.md content:
    - Use `templates/tasks-template.md` as structure
    - CRITICAL FORMAT REQUIREMENTS:
      - You MUST use exact task format defined in "Task Format with Sub-checks" section
@@ -80,7 +80,30 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Parallel execution examples per story
    - Implementation strategy section (MVP first, incremental delivery)
 
-5. Display final report:
+5. Display generated tasks to user:
+   - Show summary statistics:
+     - Total task count
+     - Task count per user story/phase
+     - Parallel opportunities identified
+   - Display first 3 tasks as preview
+   - Display target file path: FEATURE_DIR/tasks.md
+
+6. Request user confirmation:
+   - Use AskUserQuestion tool
+   - Question: "Create tasks.md with this content?"
+   - Options:
+     - "Yes, create tasks.md" (Recommended)
+     - "No, cancel operation"
+   - If user selects "No" or "Other" with cancel intent:
+     - Display: "Tasks.md creation cancelled. No files were modified."
+     - HALT execution
+   - If user selects "Yes": Proceed to step 7
+
+7. Write tasks.md to FEATURE_DIR:
+   - Create file at specified path
+   - Write generated content
+
+8. Display final report:
    - Total task count
    - Task count per user story
    - Parallel opportunities identified

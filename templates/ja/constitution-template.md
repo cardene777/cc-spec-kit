@@ -1,5 +1,4 @@
 ---
-enabled: false
 description: プロジェクト憲法テンプレート
 version: 1.0.0
 ---

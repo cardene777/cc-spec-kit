@@ -1,5 +1,4 @@
 ---
-enabled: false
 description: Project Constitution Template
 version: 1.0.0
 ---

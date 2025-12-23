@@ -7,6 +7,40 @@ All notable changes to Grove CLI are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] - 2025-12-24
+
+### Added
+
+- **Codex global command installation** support
+  - Grove commands now install to `~/.codex/prompts/` instead of project-local `.codex/`
+  - Eliminates need for CODEX_HOME environment variable
+  - Commands use `/prompts:grove.*` prefix (e.g., `/prompts:grove.specify`)
+- **grove update-commands** command
+  - Updates installed Codex commands to latest version
+  - Displays installed version and available commands
+- **Enhanced grove version command**
+  - Shows Codex commands version alongside CLI version
+  - Warns if version mismatch detected
+
+### Changed
+
+- **specify.md input now optional** (matches constitution.md behavior)
+  - `$ARGUMENTS` is now optional `(if provided)`
+  - Template loading moved to Step 1 (first step in execution flow)
+  - Consistent with constitution.md workflow
+- **Removed project-local .codex/ directory creation**
+  - Codex commands are now global per user, not per project
+  - Simplifies project structure
+- **Updated AGENTS.md with Codex global installation documentation**
+  - Added installation, update, and version check instructions
+  - Documented global vs project directory structure
+
+### Fixed
+
+- Codex CLI prerequisite script execution logic
+  - Made script execution conditional based on YAML frontmatter
+  - Only runs if `scripts:` section exists in command file
+
 ## [0.1.5] - 2025-12-23
 
 ### Added

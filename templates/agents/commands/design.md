@@ -71,7 +71,28 @@ This command generates not just visual specifications, but a complete record of 
    - Initialize changelog with design baseline
    - Document integration instructions
 
-8. Verify output and display summary
+8. Display generated design system to user:
+   - Show design system structure and key files created
+   - Display color palette, typography, spacing tokens
+   - Show component list and patterns
+   - Display target directory: `.grove/design/`
+
+9. Request user confirmation:
+   - Use AskUserQuestion tool
+   - Question: "Save design system with this content?"
+   - Options:
+     - "Yes, save design system" (Recommended)
+     - "No, cancel operation"
+   - If user selects "No" or "Other" with cancel intent:
+     - Display: "Design system creation cancelled. No files were modified."
+     - HALT execution
+   - If user selects "Yes": Proceed to step 10
+
+10. Save all design files to `.grove/design/`:
+    - Write all generated files to design directory
+    - Commit design system structure
+
+11. Verify output and display summary
 
 ---
 

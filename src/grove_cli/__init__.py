@@ -58,7 +58,7 @@ ssl_context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 client = httpx.Client(verify=ssl_context)
 
 # Version
-__version__ = "0.1.1"
+__version__ = "0.1.6"
 
 # =============================================================================
 # AI Agent Support
@@ -317,35 +317,57 @@ def get_templates_root() -> Path:
 
     raise RuntimeError("Templates directory not found")
 
-def load_template_if_enabled(command: str, project_dir: Path) -> Optional[str]:
-    """Load template if enabled flag is true
+# Removed: load_template_if_enabled function
+# Template content is no longer passed to commands via template_content parameter.
+# Commands now read templates directly and request user confirmation before writing files.
 
-    Args:
-        command: Command name (constitution, specify, plan, tasks)
-        project_dir: Project root directory
+def install_global_codex_commands() -> int:
+    """Install Grove commands to global codex prompts directory (~/.codex/prompts/)
 
     Returns:
-        Template content (without frontmatter) if enabled, None otherwise
+        Number of commands installed
     """
-    # Get language setting
-    lang = get_project_language(project_dir)
+    home = Path.home()
+    codex_prompts_dir = home / ".codex" / "prompts"
+    codex_prompts_dir.mkdir(parents=True, exist_ok=True)
 
-    # Find template file
+    # Get templates root directory
     templates_root = get_templates_root()
-    template_file = templates_root / lang / f"{command}-template.md"
+    commands_dir = templates_root / "agents" / "commands"
 
-    if not template_file.exists():
-        return None
+    if not commands_dir.exists():
+        raise FileNotFoundError(f"Commands directory not found: {commands_dir}")
 
-    # Parse frontmatter
-    content = template_file.read_text(encoding="utf-8")
-    frontmatter, body = parse_yaml_frontmatter(content)
+    # Create version file in prompts/ directory
+    version_file = codex_prompts_dir / ".grove-version"
+    with open(version_file, "w") as f:
+        f.write(__version__)
 
-    # Check enabled flag
-    if frontmatter.get("enabled", False):
-        return body
+    # List of command files to install
+    command_files = [
+        "constitution.md",
+        "specify.md",
+        "plan.md",
+        "tasks.md",
+        "implement.md",
+        "design.md",
+        "review.md",
+        "fix.md",
+    ]
 
-    return None
+    copied_count = 0
+    for cmd_file in command_files:
+        src = commands_dir / cmd_file
+        # Add grove. prefix and place in prompts/ directly
+        dest = codex_prompts_dir / f"grove.{cmd_file}"
+
+        if src.exists():
+            shutil.copy2(src, dest)
+            copied_count += 1
+        else:
+            console.print(f"  [yellow]⚠[/yellow] Warning: {cmd_file} not found")
+
+    return copied_count
 
 # =============================================================================
 # Agent Configuration
@@ -2026,9 +2048,10 @@ def init(
             ensure_agent_installed("claude", project_path)
             console.print(f"[green]✓[/green] Claude Code configuration downloaded from GitHub")
         elif agent_name == "codex":
-            # Download from GitHub
-            ensure_agent_installed("codex", project_path)
-            console.print(f"[green]✓[/green] Codex configuration downloaded from GitHub")
+            # Install commands globally to ~/.codex/prompts/
+            count = install_global_codex_commands()
+            console.print(f"[green]✓[/green] Installed {count} Grove commands to ~/.codex/prompts/")
+            console.print(f"[dim]  Use /prompts:grove.specify, /prompts:grove.plan, etc.[/dim]")
 
     # Show git error details if initialization failed
     if git_error_message:
@@ -2051,8 +2074,7 @@ def init(
     agent_folders = []
     if "claude" in selected_ai_agents:
         agent_folders.append(".claude/")
-    if "codex" in selected_ai_agents:
-        agent_folders.append(".codex/")
+    # Note: Codex commands are now installed globally to ~/.codex/prompts/, no local .codex/ folder
 
     if agent_folders:
         folders_str = ", ".join(f"[cyan]{folder}[/cyan]" for folder in agent_folders)
@@ -2075,18 +2097,8 @@ def init(
         steps_lines.append(f"1. {t('next_steps_already_in_dir')}")
         step_num = 2
 
-    # Add Codex-specific setup step if needed
-    if "codex" in selected_ai_agents:
-        codex_path = project_path / ".codex"
-        quoted_path = shlex.quote(str(codex_path))
-        if os.name == "nt":  # Windows
-            cmd = f"setx CODEX_HOME {quoted_path}"
-        else:  # Unix-like systems
-            cmd = f"export CODEX_HOME={quoted_path}"
-
-        set_env_msg = f"{step_num}. Codex実行前に [cyan]CODEX_HOME[/cyan] 環境変数を設定: [cyan]{cmd}[/cyan]" if selected_lang == "ja" else f"{step_num}. Set [cyan]CODEX_HOME[/cyan] environment variable before running Codex: [cyan]{cmd}[/cyan]"
-        steps_lines.append(set_env_msg)
-        step_num += 1
+    # Note: CODEX_HOME environment variable is no longer needed
+    # Codex commands are now installed globally to ~/.codex/prompts/
 
     steps_lines.append(f"{step_num}. {t('next_steps_start_using')}")
 
@@ -2219,6 +2231,19 @@ def version():
     info_table.add_row("CLI Version", cli_version)
     info_table.add_row("Template Version", template_version)
     info_table.add_row("Released", release_date)
+
+    # Check for installed Codex commands
+    home = Path.home()
+    version_file = home / ".codex" / "prompts" / ".grove-version"
+
+    if version_file.exists():
+        with open(version_file) as f:
+            installed_version = f.read().strip()
+        info_table.add_row("Codex Commands", installed_version)
+
+        if installed_version != cli_version:
+            info_table.add_row("", "[yellow]⚠ Version mismatch - run 'grove update-commands'[/yellow]")
+
     info_table.add_row("", "")
     info_table.add_row("Python", platform.python_version())
     info_table.add_row("Platform", platform.system())
@@ -2861,36 +2886,31 @@ def workflow(
     constitution_path = project_dir / ".claude" / "rules" / "constitution.md"
     if not constitution_path.exists():
         console.print("[cyan]Creating constitution...[/cyan]")
-        template_content = load_template_if_enabled("constitution", project_dir)
         executor = AgentExecutor(selected_agent, project_dir)
-        executor.execute("constitution", template_content=template_content)
+        executor.execute("constitution")
         console.print("[green]✓[/green] Constitution created")
     else:
         console.print("[dim]Constitution already exists, skipping...[/dim]")
 
     # Step 2: Specify
     console.print("\n[bold cyan]Step 2: Specification[/bold cyan]")
-    template_content = load_template_if_enabled("specify", project_dir)
     executor = AgentExecutor(selected_agent, project_dir)
-    executor.execute("specify", prompt, template_content=template_content)
+    executor.execute("specify", prompt)
     console.print("[green]✓[/green] Specification created")
 
     # Step 3: Design
     console.print("\n[bold cyan]Step 3: Design[/bold cyan]")
-    template_content = load_template_if_enabled("design", project_dir)
-    executor.execute("design", template_content=template_content)
+    executor.execute("design")
     console.print("[green]✓[/green] Design-creator skill created")
 
     # Step 4: Plan
     console.print("\n[bold cyan]Step 4: Implementation Plan[/bold cyan]")
-    template_content = load_template_if_enabled("plan", project_dir)
-    executor.execute("plan", template_content=template_content)
+    executor.execute("plan")
     console.print("[green]✓[/green] Plan created")
 
     # Step 5: Tasks
     console.print("\n[bold cyan]Step 5: Task Breakdown[/bold cyan]")
-    template_content = load_template_if_enabled("tasks", project_dir)
-    executor.execute("tasks", template_content=template_content)
+    executor.execute("tasks")
     console.print("[green]✓[/green] Tasks created")
 
     # Step 6: Implement
@@ -2910,6 +2930,43 @@ def workflow(
 # =============================================================================
 # Phase 4: Document Management (Skeleton Implementation)
 # =============================================================================
+
+@app.command()
+def update_commands():
+    """
+    Update Grove commands in ~/.codex/prompts/
+
+    Updates all Grove command files (grove.specify, grove.plan, etc.)
+    in the global Codex prompts directory to the latest version.
+
+    Examples:
+        grove update-commands
+    """
+    try:
+        count = install_global_codex_commands()
+        console.print(f"[green]✓[/green] Updated {count} Grove commands in ~/.codex/prompts/")
+
+        # Display installed version
+        home = Path.home()
+        version_file = home / ".codex" / "prompts" / ".grove-version"
+        if version_file.exists():
+            with open(version_file) as f:
+                installed_version = f.read().strip()
+            console.print(f"  Version: {installed_version}")
+
+        console.print(f"\n[dim]Commands available:[/dim]")
+        console.print(f"  /prompts:grove.constitution")
+        console.print(f"  /prompts:grove.specify")
+        console.print(f"  /prompts:grove.plan")
+        console.print(f"  /prompts:grove.tasks")
+        console.print(f"  /prompts:grove.implement")
+        console.print(f"  /prompts:grove.design")
+        console.print(f"  /prompts:grove.review")
+        console.print(f"  /prompts:grove.fix")
+
+    except Exception as e:
+        console.print(f"[red]✗[/red] Error updating commands: {e}")
+        raise typer.Exit(1)
 
 @app.command()
 def sync(

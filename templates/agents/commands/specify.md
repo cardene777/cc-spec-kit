@@ -27,11 +27,13 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-The text the user typed after `/grove.specify` in the triggering message **is** the feature description. Assume you always have it available in this conversation even if `{ARGS}` appears literally below. Do not ask the user to repeat it unless they provided an empty command.
-
 Follow this execution flow:
 
-1. Generate concise short name (2-4 words) for branch:
+1. Load all available inputs:
+   - Read spec template: `.grove/templates/spec-template.md`
+   - Check `$ARGUMENTS` for feature description (if provided)
+
+2. Generate concise short name (2-4 words) for branch:
    - Analyze feature description and extract meaningful keywords
    - Use action-noun format when possible (e.g., "add-user-auth", "fix-payment-bug")
    - Preserve technical terms and acronyms (OAuth2, API, JWT, etc.)
@@ -42,7 +44,7 @@ Follow this execution flow:
      - "Create a dashboard for analytics" → "analytics-dashboard"
      - "Fix payment processing timeout bug" → "fix-payment-timeout"
 
-2. Check for existing branches before creating new one:
+3. Check for existing branches before creating new one:
    - Fetch all remote branches: `git fetch --all --prune`
    - Find highest feature number across all sources for the short-name:
      - Remote branches: `git ls-remote --heads origin | grep -E 'refs/heads/[0-9]+-<short-name>$'`
@@ -60,15 +62,10 @@ Follow this execution flow:
      - JSON output contains BRANCH_NAME and SPEC_FILE paths
      - For single quotes in args: use escape syntax `'I'\''m Groot'` or double-quote `"I'm Groot"`
 
-3. Load all available inputs:
-   - Read spec template: `.grove/templates/spec-template.md`
-   - Read user input: `$ARGUMENTS` for feature description
-   - If empty or unclear: Ask user to provide feature description
-
 4. Generate specification (intelligent creation):
    - Base structure: From spec-template.md
-   - Feature description: From $ARGUMENTS
-   - Fill sections with feature-specific content derived from description
+   - Feature description: From $ARGUMENTS (if provided)
+   - Fill sections with feature-specific content derived from description or template examples
    - For unclear aspects:
      - Make informed guesses based on context and industry standards
      - Only mark with [NEEDS CLARIFICATION: specific question] if:

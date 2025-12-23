@@ -1,5 +1,4 @@
 ---
-enabled: false
 description: 機能仕様テンプレート
 version: 1.0.0
 ---

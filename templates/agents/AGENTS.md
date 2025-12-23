@@ -2,25 +2,29 @@
 
 ## ⚠️ CRITICAL: Prerequisite Script Execution
 
-**EXECUTE THIS BEFORE ANYTHING ELSE - NO EXCEPTIONS**
+**CHECK YAML FRONTMATTER FIRST**
 
 When you see a Grove slash command (`/grove.implement`, `/grove.plan`, etc.):
 
-### STEP 1: Execute Prerequisite Script (MANDATORY FIRST STEP)
+### STEP 1: Check for Prerequisite Script (CONDITIONAL)
 
-**The command file has YAML frontmatter like this**:
+**Look at the YAML frontmatter in the command file**:
+
+**IF** the frontmatter has a `scripts:` section like this:
 ```yaml
 scripts:
   sh: scripts/bash/check-prerequisites.sh --json --require-tasks
   ps: scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks
 ```
 
-**What you MUST do FIRST**:
-1. **Check the `scripts:` section** in the YAML frontmatter above
-2. **Determine your OS**: macOS/Linux → use `sh:`, Windows → use `ps:`
-3. **Run the script using Bash tool** from repository root
-4. **Parse the JSON output**
-5. **Extract and save paths**: `FEATURE_DIR`, `AVAILABLE_DOCS`, etc.
+**THEN** execute the prerequisite script:
+1. **Determine your OS**: macOS/Linux → use `sh:`, Windows → use `ps:`
+2. **Run the script using Bash tool** from repository root
+3. **Parse the JSON output**
+4. **Extract and save paths**: `FEATURE_DIR`, `AVAILABLE_DOCS`, etc.
+
+**IF** the frontmatter has NO `scripts:` section:
+- **SKIP** this step and proceed directly to the outline
 
 **Example**:
 ```bash

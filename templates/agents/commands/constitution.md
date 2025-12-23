@@ -64,12 +64,33 @@ Follow this execution flow:
    - Principles are declarative, testable, specific
    - Governance section complete (amendment procedure, versioning, compliance)
 
-6. Write constitution to `.grove/memory/constitution.md`:
+6. Display generated constitution to user:
+   - Show complete constitution content (with syntax highlighting if possible)
+   - Highlight key changes:
+     - Version change: old → new
+     - New principles added
+     - Modified principles
+     - Removed sections
+   - Display target file path: `.grove/memory/constitution.md`
+   - Display templates that will be updated
+
+7. Request user confirmation:
+   - Use AskUserQuestion tool
+   - Question: "Create/update constitution with this content?"
+   - Options:
+     - "Yes, create/update constitution" (Recommended)
+     - "No, cancel operation"
+   - If user selects "No" or "Other" with cancel intent:
+     - Display: "Constitution update cancelled. No files were modified."
+     - HALT execution
+   - If user selects "Yes": Proceed to step 8
+
+8. Write constitution to `.grove/memory/constitution.md`:
    - Overwrite if exists
    - Create if new
    - Note: Will be automatically synced to `.claude/rules/constitution.md` by prerequisite scripts on next command execution
 
-7. Display summary to user:
+9. Display summary to user:
    - Version change and bump rationale
    - Key changes list
    - Templates updated count
